@@ -1,0 +1,221 @@
+---
+// Header Component - Finca La Habanera Portal
+
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '' } = Astro.props;
+
+const navLinks = [
+  { href: '/', label: 'Inicio' },
+  { href: '/productos', label: 'Productos' },
+  { href: '/galeria', label: 'Galeria' },
+  { href: '/turismo', label: 'Turismo' },
+  { href: '/contacto', label: 'Contacto' },
+];
+
+const isActive = (href: string) => {
+  if (href === '/') return currentPath === '/';
+  return currentPath.startsWith(href);
+};
+---
+
+<header class="header">
+  <div class="container header-content">
+    <a href="/" class="logo">
+      <div class="logo-circle">
+        <span>LH</span>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">La Habanera</span>
+        <span class="logo-tagline">Finca Caprina</span>
+      </div>
+    </a>
+    
+    <nav class="nav desktop-only">
+      {navLinks.map(link => (
+        <a 
+          href={link.href} 
+          class={`nav-link ${isActive(link.href) ? 'active' : ''}`}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+    
+    <button class="menu-toggle mobile-only" id="menuToggle" aria-label="Abrir menu">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+  
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="menu-close" id="menuClose" aria-label="Cerrar menu">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <nav class="mobile-menu-nav">
+      {navLinks.map(link => (
+        <a 
+          href={link.href} 
+          class={`nav-link ${isActive(link.href) ? 'active' : ''}`}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    background-color: var(--color-bg);
+    border-bottom: 1px solid var(--color-card);
+    z-index: 100;
+  }
+  
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-decoration: none;
+    color: var(--color-text);
+  }
+  
+  .logo-circle {
+    width: 48px;
+    height: 48px;
+    background-color: var(--color-text);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent);
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+  
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .logo-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    line-height: 1.2;
+    color: var(--color-text);
+  }
+  
+  .logo-tagline {
+    font-size: 0.75rem;
+    color: var(--color-border);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .nav {
+    display: flex;
+    gap: var(--spacing-lg);
+  }
+  
+  .nav-link {
+    color: var(--color-text);
+    font-weight: 500;
+    padding: var(--spacing-xs) 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  
+  .nav-link:hover,
+  .nav-link.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+  
+  .menu-toggle,
+  .menu-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    color: var(--color-text);
+  }
+  
+  .menu-close {
+    position: absolute;
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+  }
+  
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-bg);
+    z-index: 999;
+    display: none;
+    padding: 80px var(--spacing-lg) var(--spacing-lg);
+  }
+  
+  .mobile-menu.open {
+    display: block;
+  }
+  
+  .mobile-menu-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+  
+  .mobile-menu-nav .nav-link {
+    font-size: 1.25rem;
+    border-bottom: none;
+  }
+</style>
+
+<script>
+  // Mobile menu toggle
+  const menuToggle = document.getElementById('menuToggle');
+  const menuClose = document.getElementById('menuClose');
+  const mobileMenu = document.getElementById('mobileMenu');
+  
+  menuToggle?.addEventListener('click', () => {
+    mobileMenu?.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  });
+  
+  menuClose?.addEventListener('click', () => {
+    mobileMenu?.classList.remove('open');
+    document.body.style.overflow = '';
+  });
+  
+  // Close menu on link click
+  const mobileLinks = mobileMenu?.querySelectorAll('a');
+  mobileLinks?.forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu?.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+</script>

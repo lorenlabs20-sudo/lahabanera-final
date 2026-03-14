@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#3D2314"/>
+  
+  <!-- LH letters -->
+  <text 
+    x="50" 
+    y="58" 
+    text-anchor="middle" 
+    font-family="Arial, sans-serif" 
+    font-size="32" 
+    font-weight="bold" 
+    fill="#D4A574"
+  >LH</text>
+  
+  <!-- Decorative goat horn curve -->
+  <path 
+    d="M25 75 Q 30 60, 40 65" 
+    stroke="#D4A574" 
+    stroke-width="3" 
+    fill="none" 
+    stroke-linecap="round"
+  />
+  <path 
+    d="M75 75 Q 70 60, 60 65" 
+    stroke="#D4A574" 
+    stroke-width="3" 
+    fill="none" 
+    stroke-linecap="round"
+  />
+</svg>

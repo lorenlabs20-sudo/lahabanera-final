@@ -1,0 +1,296 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import PageHero from '../../components/PageHero.astro';
+---
+
+<MainLayout title="Turismo Rural" description="Reserve su visita a Finca La Habanera - Turismo rural, degustacion de productos y experiencia caprina">
+  <!-- Hero -->
+  <PageHero 
+    title="Turismo Rural"
+    subtitle="Viva una experiencia unica en nuestra finca caprina. Conozca el proceso de elaboracion de nuestros productos, interactue con nuestras cabras y disfrute del campo cubano."
+    backgroundImage="https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=1920&q=80"
+    height="medium"
+    badge="Experiencia Unica"
+    primaryCta={{
+      text: "Reservar Visita",
+      href: "#reserva-form"
+    }}
+  />
+  
+  <section class="section turismo-page">
+    <div class="container">
+      <div class="turismo-content">
+        <div class="turismo-info">
+          <div class="info-card">
+            <h2>Que Incluye la Visita</h2>
+            <ul class="incluye-list">
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Recorrido guiado por la finca
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Conocimiento del proceso de ordeño
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Interaccion con las cabras
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Degustacion de productos lacteos
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Almuerzo criollo (opcional)
+              </li>
+            </ul>
+          </div>
+          
+          <div class="info-card">
+            <h2>Ubicacion</h2>
+            <p>Km 38-1/2, Carretera Central, San Pedro, San Jose de Las Lajas, Mayabeque, Cuba</p>
+            <p class="info-extra">Aproximadamente 45 minutos desde La Habana</p>
+          </div>
+        </div>
+        
+        <div class="reserva-form-container" id="reserva-form">
+          <h2>Solicite su Visita</h2>
+          <form id="reserva-form-element" class="reserva-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nombre" class="form-label">Nombre completo *</label>
+                <input type="text" id="nombre" name="nombre" required class="form-input" placeholder="Su nombre">
+              </div>
+            </div>
+            
+            <div class="form-row two-cols">
+              <div class="form-group">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" id="email" name="email" required class="form-input" placeholder="correo@ejemplo.com">
+              </div>
+              <div class="form-group">
+                <label for="telefono" class="form-label">Telefono</label>
+                <input type="tel" id="telefono" name="telefono" class="form-input" placeholder="+53 5 XXX XXXX">
+              </div>
+            </div>
+            
+            <div class="form-row two-cols">
+              <div class="form-group">
+                <label for="fecha" class="form-label">Fecha deseada *</label>
+                <input type="date" id="fecha" name="fecha" required class="form-input">
+              </div>
+              <div class="form-group">
+                <label for="personas" class="form-label">Numero de personas *</label>
+                <input type="number" id="personas" name="personas" min="1" max="50" required class="form-input" placeholder="1">
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="comentarios" class="form-label">Comentarios</label>
+                <textarea id="comentarios" name="comentarios" class="form-textarea" placeholder="Alguna solicitud especial, alergias alimentarias, etc."></textarea>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-accent btn-full">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                <line x1="16" x2="16" y1="2" y2="6"/>
+                <line x1="8" x2="8" y1="2" y2="6"/>
+                <line x1="3" x2="21" y1="10" y2="10"/>
+              </svg>
+              Enviar Solicitud
+            </button>
+          </form>
+          
+          <div id="reserva-success" class="success-message" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <h3>Solicitud Enviada</h3>
+            <p>Gracias por su interes. Nos pondremos en contacto con usted para confirmar su visita.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</MainLayout>
+
+<style>
+  .turismo-page {
+    background-color: var(--color-crema);
+  }
+  
+  .turismo-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .turismo-content {
+      grid-template-columns: 1fr 1.5fr;
+    }
+  }
+  
+  .info-card {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(61, 35, 20, 0.1);
+  }
+  
+  .info-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-chocolate);
+    margin-bottom: 1rem;
+  }
+  
+  .incluye-list {
+    list-style: none;
+  }
+  
+  .incluye-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    color: var(--color-cafe);
+  }
+  
+  .incluye-list svg {
+    color: var(--color-verde);
+    flex-shrink: 0;
+  }
+  
+  .info-card p {
+    color: var(--color-cafe);
+    margin-bottom: 0.5rem;
+  }
+  
+  .info-extra {
+    font-size: 0.9rem;
+    color: var(--color-tierra);
+  }
+  
+  .reserva-form-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(61, 35, 20, 0.1);
+  }
+  
+  .reserva-form-container h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-chocolate);
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-row {
+    margin-bottom: 1rem;
+  }
+  
+  .form-row.two-cols {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .form-row.two-cols {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  .btn-full {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  .success-message {
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .success-message svg {
+    color: var(--color-verde);
+    margin-bottom: 1rem;
+  }
+  
+  .success-message h3 {
+    font-size: 1.25rem;
+    color: var(--color-chocolate);
+    margin-bottom: 0.5rem;
+  }
+  
+  .success-message p {
+    color: var(--color-tierra);
+  }
+</style>
+
+<script>
+  const form = document.getElementById('reserva-form-element') as HTMLFormElement | null;
+  const successDiv = document.getElementById('reserva-success');
+  
+  // Set minimum date to today
+  const fechaInput = document.getElementById('fecha') as HTMLInputElement | null;
+  if (fechaInput) {
+    const today = new Date().toISOString().split('T')[0];
+    fechaInput.min = today;
+  }
+  
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const data = {
+      nombre: formData.get('nombre'),
+      email: formData.get('email'),
+      telefono: formData.get('telefono'),
+      fecha: formData.get('fecha'),
+      personas: parseInt(formData.get('personas') as string),
+      comentarios: formData.get('comentarios'),
+      estado: 'pendiente'
+    };
+    
+    try {
+      const response = await fetch('/api/reservas?XTransformPort=3000', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (response.ok) {
+        form.style.display = 'none';
+        if (successDiv) successDiv.style.display = 'block';
+      } else {
+        alert('Hubo un error al enviar la solicitud. Por favor, intente de nuevo.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Hubo un error al enviar la solicitud. Por favor, intente de nuevo.');
+    }
+  });
+</script>

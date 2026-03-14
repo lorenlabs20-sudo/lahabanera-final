@@ -1,0 +1,128 @@
+// ===========================================
+// FINCA LA HABANERA - ESQUEMA DE BASE DE DATOS
+// SQLite (Desarrollo) - Migrar a PostgreSQL en producción
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "sqlite"
+  url      = "file:../db/lahabanera.db"
+}
+
+// ===========================================
+// USUARIO - Administrador del CMS
+// ===========================================
+
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nombre    String
+  rol       String   @default("admin")
+  creadoEn  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ===========================================
+// CATEGORIA - Clasificacion de productos
+// ===========================================
+
+model Categoria {
+  id           String     @id @default(cuid())
+  nombre       String
+  descripcion  String?
+  productos    Producto[]
+  creadoEn     DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("categorias")
+}
+
+// ===========================================
+// PRODUCTO - Catalogo de productos
+// ===========================================
+
+model Producto {
+  id          String    @id @default(cuid())
+  nombre      String
+  descripcion String?
+  imagen      String?
+  activo      Boolean   @default(true)
+  categoriaId String
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  creadoEn    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("productos")
+}
+
+// ===========================================
+// IMAGEN - Galeria multimedia
+// ===========================================
+
+model Imagen {
+  id        String   @id @default(cuid())
+  url       String
+  nombre    String
+  alt       String?
+  tipo      String   @default("general") // "producto" | "galeria" | "general"
+  enGaleria Boolean  @default(false)
+  creadoEn  DateTime @default(now())
+
+  @@map("imagenes")
+}
+
+// ===========================================
+// RESERVA - Turismo rural
+// ===========================================
+
+model Reserva {
+  id          String   @id @default(cuid())
+  nombre      String
+  email       String
+  telefono    String?
+  fecha       String   // SQLite no soporta DateTime directamente
+  personas    Int
+  comentarios String?
+  estado      String   @default("pendiente") // pendiente | confirmada | cancelada
+  creadoEn    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reservas")
+}
+
+// ===========================================
+// MENSAJE - Formulario de contacto
+// ===========================================
+
+model Mensaje {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String
+  telefono  String?
+  asunto    String
+  mensaje   String
+  leido     Boolean  @default(false)
+  creadoEn  DateTime @default(now())
+
+  @@map("mensajes")
+}
+
+// ===========================================
+// CONFIGURACION - Datos de contacto
+// ===========================================
+
+model Configuracion {
+  id        String @id @default(cuid())
+  telefono  String
+  email     String
+  whatsapp  String
+  instagram String?
+  facebook  String?
+  direccion String
+
+  @@map("configuracion")
+}

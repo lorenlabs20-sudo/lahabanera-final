@@ -36,9 +36,7 @@ const { title, description = 'Finca Caprina La Habanera - Productos lacteos capr
     <div class="container">
       <nav class="nav">
         <a href="/" class="logo">
-          <div class="logo-icon">
-            <span>LH</span>
-          </div>
+          <img src="/Logo.png" alt="La Habanera" class="logo-img" />
           <div class="logo-text">
             <span class="logo-name">La Habanera</span>
             <span class="logo-tagline">Finca Caprina</span>
@@ -75,9 +73,7 @@ const { title, description = 'Finca Caprina La Habanera - Productos lacteos capr
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo">
-            <div class="logo-icon">
-              <span>LH</span>
-            </div>
+            <img src="/Logo.png" alt="La Habanera" class="logo-img" />
             <div class="logo-text">
               <span class="logo-name">La Habanera</span>
               <span class="logo-tagline">Finca Caprina</span>
@@ -190,6 +186,20 @@ const { title, description = 'Finca Caprina La Habanera - Productos lacteos capr
       text-decoration: none;
     }
     
+    .logo-img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 768px) {
+    .logo-img {
+      width: 55px;
+      height: 55px;
+     }
+    }
     .logo-icon {
       width: 45px;
       height: 45px;
@@ -222,6 +232,8 @@ const { title, description = 'Finca Caprina La Habanera - Productos lacteos capr
       font-size: 0.75rem;
       color: var(--color-tierra);
     }
+
+    
     
     .nav-toggle {
       display: block;

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
 // GET - Get single categoria
 export async function GET(
@@ -93,6 +94,9 @@ export async function PUT(
       },
     })
 
+    // Disparar webhook para reconstruir el Portal
+    webhookTriggers.categoriaActualizada(categoria.id)
+
     return NextResponse.json({ categoria })
   } catch (error) {
     console.error('Error updating categoria:', error)
@@ -139,6 +143,9 @@ export async function DELETE(
     await db.categoria.delete({
       where: { id },
     })
+
+    // Disparar webhook para reconstruir el Portal
+    webhookTriggers.categoriaEliminada(id)
 
     return NextResponse.json({
       success: true,

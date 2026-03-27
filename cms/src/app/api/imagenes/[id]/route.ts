@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
 // GET - Get single imagen
 export async function GET(
@@ -70,6 +71,11 @@ export async function PUT(
       },
     })
 
+    // Disparar webhook si la imagen está en galería
+    if (imagen.enGaleria) {
+      webhookTriggers.imagenCreada(imagen.id)
+    }
+
     return NextResponse.json({ imagen })
   } catch (error) {
     console.error('Error updating imagen:', error)
@@ -105,6 +111,11 @@ export async function DELETE(
     await db.imagen.delete({
       where: { id },
     })
+
+    // Disparar webhook si la imagen estaba en galería
+    if (imagen.enGaleria) {
+      webhookTriggers.imagenEliminada(id)
+    }
 
     return NextResponse.json({
       success: true,

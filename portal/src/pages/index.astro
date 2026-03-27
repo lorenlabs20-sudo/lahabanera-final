@@ -1,18 +1,13 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
 import PageHero from '../components/PageHero.astro';
+import { fetchCmsData } from '../lib/config';
 
-// Fetch data from CMS
-const productosResponse = await fetch('http://localhost:3000/api/productos?XTransformPort=3000');
-const productosData = await productosResponse.json();
-const productos = productosData.productos?.slice(0, 6) || [];
-
-const imagenesResponse = await fetch('http://localhost:3000/api/imagenes?XTransformPort=3000&enGaleria=true');
-const imagenesData = await imagenesResponse.json();
-const imagenes = imagenesData.imagenes?.slice(0, 4) || [];
-
-const configResponse = await fetch('http://localhost:3000/api/configuracion?XTransformPort=3000');
-const config = await configResponse.json();
+// Fetch all data from CMS is on request
+const data = await fetchCmsData();
+const productos = data.productos?.slice(0, 6) || [];
+const imagenes = data.galeria?.slice(0, 4) || [];
+const config = data.configuracion;
 ---
 
 <MainLayout title="Inicio">

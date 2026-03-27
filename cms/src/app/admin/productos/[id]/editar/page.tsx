@@ -57,7 +57,7 @@ export default function EditarProductoPage() {
       const res = await fetch("/api/categorias")
       if (res.ok) {
         const data = await res.json()
-        setCategorias(data)
+        setCategorias(data.categorias)
       }
     } catch (error) {
       console.error("Error fetching categorias:", error)
@@ -68,7 +68,8 @@ export default function EditarProductoPage() {
     try {
       const res = await fetch(`/api/productos/${productoId}`)
       if (res.ok) {
-        const producto: Producto = await res.json()
+        const data = await res.json()
+        const producto = data.producto
         setFormData({
           nombre: producto.nombre,
           descripcion: producto.descripcion || "",

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
 // Valid tipos
 const VALID_TIPOS = ['producto', 'galeria', 'general']
@@ -71,6 +72,11 @@ export async function POST(request: Request) {
         enGaleria: enGaleria ?? false,
       },
     })
+
+    // Disparar webhook si la imagen está en galería
+    if (imagen.enGaleria) {
+      webhookTriggers.imagenCreada(imagen.id)
+    }
 
     return NextResponse.json({ imagen }, { status: 201 })
   } catch (error) {

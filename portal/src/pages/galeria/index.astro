@@ -1,11 +1,11 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import PageHero from '../../components/PageHero.astro';
+import { fetchCmsData } from '../../lib/config';
 
-// Fetch imagenes de galeria
-const imagenesResponse = await fetch('http://localhost:3000/api/imagenes?XTransformPort=3000&enGaleria=true');
-const imagenesData = await imagenesResponse.json();
-const imagenes = imagenesData.imagenes || [];
+// Fetch all data from CMS in one request
+const data = await fetchCmsData();
+const imagenes = data.galeria || [];
 ---
 
 <MainLayout title="Galeria" description="Galeria de imagenes de Finca La Habanera - Nuestra finca, cabras y productos">

@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
-// GET - Get single producto
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// GET - List all productos with categoria relation
+export async function GET() {
   try {
-    const { id } = await params
-
-    const producto = await db.producto.findUnique({
-      where: { id },
+    const productos = await db.producto.findMany({
       include: {
         categoria: {
           select: {
@@ -19,69 +14,57 @@ export async function GET(
           },
         },
       },
+      orderBy: {
+        creadoEn: 'desc',
+      },
     })
 
-    if (!producto) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({ producto })
+    return NextResponse.json({ productos })
   } catch (error) {
-    console.error('Error fetching producto:', error)
+    console.error('Error fetching productos:', error)
     return NextResponse.json(
-      { error: 'Error al obtener producto' },
+      { error: 'Error al obtener productos' },
       { status: 500 }
     )
   }
 }
 
-// PUT - Update producto
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// POST - Create new producto
+export async function POST(request: Request) {
+  console.log('===== POST /api/productos EJECUTÁNDOSE =====')
+  
   try {
-    const { id } = await params
     const body = await request.json()
     const { nombre, descripcion, imagen, categoriaId, activo } = body
 
-    // Check if producto exists
-    const existingProducto = await db.producto.findUnique({
-      where: { id },
-    })
+    console.log('Datos recibidos:', { nombre, categoriaId })
 
-    if (!existingProducto) {
+    if (!nombre || !categoriaId) {
       return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
+        { error: 'Nombre y categoriaId son requeridos' },
+        { status: 400 }
       )
     }
 
-    // If categoriaId provided, verify it exists
-    if (categoriaId) {
-      const categoria = await db.categoria.findUnique({
-        where: { id: categoriaId },
-      })
+    // Verify categoria exists
+    const categoria = await db.categoria.findUnique({
+      where: { id: categoriaId },
+    })
 
-      if (!categoria) {
-        return NextResponse.json(
-          { error: 'La categoría no existe' },
-          { status: 400 }
-        )
-      }
+    if (!categoria) {
+      return NextResponse.json(
+        { error: 'La categoría no existe' },
+        { status: 400 }
+      )
     }
 
-    const producto = await db.producto.update({
-      where: { id },
+    const producto = await db.producto.create({
       data: {
-        nombre: nombre ?? existingProducto.nombre,
-        descripcion: descripcion !== undefined ? descripcion : existingProducto.descripcion,
-        imagen: imagen !== undefined ? imagen : existingProducto.imagen,
-        categoriaId: categoriaId ?? existingProducto.categoriaId,
-        activo: activo !== undefined ? activo : existingProducto.activo,
+        nombre,
+        descripcion: descripcion || null,
+        imagen: imagen || null,
+        categoriaId,
+        activo: activo ?? true,
       },
       include: {
         categoria: {
@@ -93,48 +76,16 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json({ producto })
+    console.log('Producto creado:', producto.nombre)
+
+    // Disparar webhook
+    await webhookTriggers.productoCreado(producto.id)
+
+    return NextResponse.json({ producto }, { status: 201 })
   } catch (error) {
-    console.error('Error updating producto:', error)
+    console.error('Error creating producto:', error)
     return NextResponse.json(
-      { error: 'Error al actualizar producto' },
-      { status: 500 }
-    )
-  }
-}
-
-// DELETE - Delete producto
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-
-    // Check if producto exists
-    const producto = await db.producto.findUnique({
-      where: { id },
-    })
-
-    if (!producto) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      )
-    }
-
-    await db.producto.delete({
-      where: { id },
-    })
-
-    return NextResponse.json({
-      success: true,
-      message: 'Producto eliminado correctamente',
-    })
-  } catch (error) {
-    console.error('Error deleting producto:', error)
-    return NextResponse.json(
-      { error: 'Error al eliminar producto' },
+      { error: 'Error al crear producto' },
       { status: 500 }
     )
   }

@@ -30,15 +30,18 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (!res.ok) {
           router.push('/admin/login');
+          setChecking(false);
           return;
         }
         setChecking(false);
         loadStats();
-      } catch {
+      } catch (error) {
+        console.error('Dashboard checkAuth error:', error);
         router.push('/admin/login');
+        setChecking(false);
       }
     };
 

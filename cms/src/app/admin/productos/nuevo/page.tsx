@@ -43,7 +43,7 @@ export default function NuevoProductoPage() {
       const res = await fetch("/api/categorias")
       if (res.ok) {
         const data = await res.json()
-        setCategorias(data)
+        setCategorias(data.categorias)
       }
     } catch (error) {
       console.error("Error fetching categorias:", error)

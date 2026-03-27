@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
 // GET - List all categorias with producto count
 export async function GET() {
@@ -63,6 +64,9 @@ export async function POST(request: Request) {
         descripcion: descripcion || null,
       },
     })
+
+    // Disparar webhook para reconstruir el Portal
+    webhookTriggers.categoriaCreada(categoria.id)
 
     return NextResponse.json({ categoria }, { status: 201 })
   } catch (error) {

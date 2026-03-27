@@ -1,10 +1,11 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import PageHero from '../../components/PageHero.astro';
+import { fetchCmsData } from '../../lib/config';
 
-// Fetch configuracion
-const configResponse = await fetch('http://localhost:3000/api/configuracion?XTransformPort=3000');
-const config = await configResponse.json();
+// Fetch all data from CMS in one request
+const data = await fetchCmsData();
+const config = data.configuracion;
 ---
 
 <MainLayout title="Contacto" description="Contacte a Finca La Habanera - Telefono, email, WhatsApp y formulario de contacto">

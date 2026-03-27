@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-for-dev';
 
 export interface JWTPayload {
   userId: string;
@@ -45,7 +45,7 @@ export const comparePassword = verifyPassword;
  * @returns JWT token string
  */
 export function generateToken(payload: object): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '4h' });
 }
 
 /**
@@ -84,8 +84,8 @@ export function getAuthUser(request: Request): JWTPayload | null {
         return [key, v.join('=')];
       })
     );
-    if (cookies.token) {
-      return verifyToken(cookies.token);
+    if (cookies.auth_token) {
+      return verifyToken(cookies.auth_token);
     }
   }
 
@@ -113,7 +113,7 @@ export function extractToken(request: Request): string | null {
         return [key, v.join('=')];
       })
     );
-    return cookies.token || null;
+    return cookies.auth_token || null;
   }
 
   return null;

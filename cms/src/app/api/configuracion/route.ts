@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
 // GET - Get configuracion (should be only one record)
 export async function GET() {
@@ -65,6 +66,9 @@ export async function PUT(request: Request) {
         },
       })
     }
+
+    // Disparar webhook para reconstruir el Portal
+    webhookTriggers.configuracionActualizada()
 
     return NextResponse.json({ configuracion })
   } catch (error) {

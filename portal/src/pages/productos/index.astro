@@ -1,15 +1,12 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import PageHero from '../../components/PageHero.astro';
+import { fetchCmsData } from '../../lib/config';
 
-// Fetch data from CMS
-const productosResponse = await fetch('http://localhost:3000/api/productos?XTransformPort=3000');
-const productosData = await productosResponse.json();
-const productos = productosData.productos || [];
-
-const categoriasResponse = await fetch('http://localhost:3000/api/categorias?XTransformPort=3000');
-const categoriasData = await categoriasResponse.json();
-const categorias = categoriasData.categorias || [];
+// Fetch all data from CMS in one request
+const data = await fetchCmsData();
+const productos = data.productos || [];
+const categorias = data.categorias || [];
 ---
 
 <MainLayout title="Productos" description="Catalogo de productos caprinos de Finca La Habanera - Quesos, yogures, leche y mas">

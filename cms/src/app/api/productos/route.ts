@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { webhookTriggers } from '@/lib/webhook'
 
 // GET - List all productos with categoria relation
 export async function GET() {
@@ -30,9 +31,13 @@ export async function GET() {
 
 // POST - Create new producto
 export async function POST(request: Request) {
+  console.log('===== POST /api/productos EJECUTÁNDOSE =====')
+  
   try {
     const body = await request.json()
     const { nombre, descripcion, imagen, categoriaId, activo } = body
+
+    console.log('Datos recibidos:', { nombre, categoriaId })
 
     if (!nombre || !categoriaId) {
       return NextResponse.json(
@@ -70,6 +75,11 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    console.log('Producto creado:', producto.nombre)
+
+    // Disparar webhook
+    await webhookTriggers.productoCreado(producto.id)
 
     return NextResponse.json({ producto }, { status: 201 })
   } catch (error) {

@@ -23,22 +23,45 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       const data = await res.json();
+      console.log('Login response', res.status, data);
 
       if (res.ok && data.success) {
-        // Redirigir usando window.location para que lea la cookie
-        window.location.href = '/admin/dashboard';
+        // Verificar que el cookie ya está disponible en /api/auth/me
+        const checkMe = await fetch('/api/auth/me', { credentials: 'include' });
+        const meData = await checkMe.json().catch(() => ({}));
+
+        if (checkMe.ok) {
+          setLoading(false);
+          // full refresh para que middleware mire el cookie desde el servidor
+          window.location.assign('/admin/dashboard');
+          return;
+        }
+
+        setError(
+          meData.error
+            ? `Login exitoso pero auth/me falla: ${meData.error}`
+            : 'Login exitoso pero no se puede verificar la sesión',
+        );
+        setLoading(false);
       } else {
         setError(data.error || 'Credenciales incorrectas');
         setLoading(false);
       }
-    } catch {
+    } catch (error) {
+      console.error('Login error', error);
       setError('Error de conexion');
       setLoading(false);
     }
@@ -80,7 +103,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@lahabanera.com"
+                  placeholder="correo@ejemplo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -97,7 +120,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Habanera2025!"
+                  placeholder="********"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -109,6 +132,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                   style={{ color: '#6B5344' }}
+                  aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -130,11 +154,6 @@ export default function LoginPage() {
                 'Iniciar Sesion'
               )}
             </Button>
-            
-            <div className="text-xs text-center pt-4" style={{ color: '#6B5344' }}>
-              <p><strong>Email:</strong> admin@lahabanera.com</p>
-              <p><strong>Contrasena:</strong> Habanera2025!</p>
-            </div>
           </form>
         </CardContent>
       </Card>

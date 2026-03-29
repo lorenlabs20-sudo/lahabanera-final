@@ -115,6 +115,7 @@ export default function MensajesPage() {
 
   const columns: ColumnDef<Mensaje>[] = [
     {
+      id: "leido-indicator",
       accessorKey: "leido",
       header: "",
       cell: ({ row }) => {

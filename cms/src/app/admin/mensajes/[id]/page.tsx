@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter, use } from "next/navigation"
+import { useEffect, useState, use } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Mail, MailOpen, Trash2, Phone, Mail as MailIcon, Calendar, User, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,16 +44,22 @@ export default function MensajeDetailPage({ params }: { params: Promise<{ id: st
       const res = await fetch(`/api/mensajes/${resolvedParams.id}`)
       if (res.ok) {
         const data = await res.json()
-        setMensaje(data.mensaje)
-        
+        let mensajeData = data.mensaje
+
         // Mark as read when opened
-        if (!data.mensaje.leido) {
-          await fetch(`/api/mensajes/${resolvedParams.id}`, {
+        if (!mensajeData.leido) {
+          const updateRes = await fetch(`/api/mensajes/${resolvedParams.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ leido: true }),
           })
+          if (updateRes.ok) {
+            const updateData = await updateRes.json()
+            mensajeData = updateData.mensaje
+          }
         }
+
+        setMensaje(mensajeData)
       } else {
         router.push("/admin/mensajes")
       }

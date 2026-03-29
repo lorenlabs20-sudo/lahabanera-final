@@ -51,7 +51,7 @@ export default function ReservaDetailPage() {
       const res = await fetch(`/api/reservas/${reservaId}`)
       if (res.ok) {
         const data = await res.json()
-        setReserva(data)
+        setReserva(data.reserva)
       } else {
         router.push("/admin/reservas")
       }

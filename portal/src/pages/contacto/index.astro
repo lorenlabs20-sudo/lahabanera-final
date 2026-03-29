@@ -350,10 +350,13 @@ const config = data.configuracion;
       mensaje: formData.get('mensaje'),
       leido: false
     };
-    
+
+    const apiBase = import.meta.env.PUBLIC_CMS_API_URL || 'http://localhost:3000';
+
     try {
-      const response = await fetch('/api/mensajes?XTransformPort=3000', {
+      const response = await fetch(`${apiBase}/api/mensajes`, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json'
         },

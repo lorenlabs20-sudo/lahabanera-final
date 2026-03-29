@@ -268,14 +268,17 @@ import PageHero from '../../components/PageHero.astro';
       email: formData.get('email'),
       telefono: formData.get('telefono'),
       fecha: formData.get('fecha'),
-      personas: parseInt(formData.get('personas') as string),
+      personas: Number(formData.get('personas')) || 0,
       comentarios: formData.get('comentarios'),
       estado: 'pendiente'
     };
-    
+
+    const apiBase = import.meta.env.PUBLIC_CMS_API_URL || 'http://localhost:3000';
+
     try {
-      const response = await fetch('/api/reservas?XTransformPort=3000', {
+      const response = await fetch(`${apiBase}/api/reservas`, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json'
         },

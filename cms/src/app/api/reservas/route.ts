@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
 // GET - List all reservas (public route for now, protect later)
 export async function GET() {
   try {
@@ -10,12 +16,12 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json({ reservas })
+    return NextResponse.json({ reservas }, { headers: CORS_HEADERS })
   } catch (error) {
     console.error('Error fetching reservas:', error)
     return NextResponse.json(
       { error: 'Error al obtener reservas' },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     )
   }
 }
@@ -62,12 +68,16 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ reserva }, { status: 201 })
+    return NextResponse.json({ reserva }, { status: 201, headers: CORS_HEADERS })
   } catch (error) {
     console.error('Error creating reserva:', error)
     return NextResponse.json(
       { error: 'Error al crear reserva' },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     )
   }
+}
+
+export function OPTIONS() {
+  return NextResponse.json({}, { headers: CORS_HEADERS })
 }

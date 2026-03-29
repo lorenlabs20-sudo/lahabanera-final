@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
 // GET - List all mensajes
 export async function GET() {
   try {
@@ -10,12 +16,12 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json({ mensajes })
+    return NextResponse.json({ mensajes }, { headers: CORS_HEADERS })
   } catch (error) {
     console.error('Error fetching mensajes:', error)
     return NextResponse.json(
       { error: 'Error al obtener mensajes' },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     )
   }
 }
@@ -53,12 +59,16 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ mensaje: nuevoMensaje }, { status: 201 })
+    return NextResponse.json({ mensaje: nuevoMensaje }, { status: 201, headers: CORS_HEADERS })
   } catch (error) {
     console.error('Error creating mensaje:', error)
     return NextResponse.json(
       { error: 'Error al enviar mensaje' },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     )
   }
+}
+
+export function OPTIONS() {
+  return NextResponse.json({}, { headers: CORS_HEADERS })
 }

@@ -14,24 +14,48 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: {
+    default: "Finca La Habanera",
+    template: "%s | Finca La Habanera"
+  },
+  description: "Finca Caprina La Habanera - Productos lácteos caprinos de calidad en Mayabeque, Cuba. Turismo rural, degustación de productos y experiencia caprina única.",
+  keywords: ["Finca La Habanera", "productos caprinos", "queso de cabra", "turismo rural Cuba", "Mayabeque", "leche de cabra", "queso artesanal"],
+  authors: [{ name: "Finca La Habanera" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/Logo.png",
+    apple: "/Logo.png",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "Finca La Habanera - Finca Caprina",
+    description: "Productos lácteos caprinos nutritivos y de alta calidad, promoviendo el bienestar animal y el desarrollo comunitario.",
+    url: "https://lahabanera.com",
+    siteName: "Finca La Habanera",
     type: "website",
+    images: [
+      {
+        url: "/Logo.png",
+        width: 512,
+        height: 512,
+        alt: "Finca La Habanera Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "Finca La Habanera - Finca Caprina",
+    description: "Productos lácteos caprinos de calidad en Mayabeque, Cuba",
+    images: ["/Logo.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    canonical: "https://lahabanera.com",
   },
 };
 
@@ -41,7 +65,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

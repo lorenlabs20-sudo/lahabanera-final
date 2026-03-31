@@ -1,3 +1,4 @@
+// admin/productos/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -25,10 +26,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+
 
 interface Categoria {
   id: string
   nombre: string
+  _count?: {
+    productos: number
+  }
 }
 
 interface Producto {
@@ -43,6 +49,7 @@ interface Producto {
 
 export default function ProductosPage() {
   const router = useRouter()
+  const { toast } = useToast();
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [categoriaFilter, setCategoriaFilter] = useState<string>("todas")
@@ -59,13 +66,20 @@ export default function ProductosPage() {
 
   const fetchProductos = async () => {
     try {
-      const res = await fetch("/api/productos")
+      const res = await fetch("/api/productos?includeCategoria=true")
       if (res.ok) {
         const data = await res.json()
         setProductos(data.productos)
+      } else {
+        throw new Error("Error al cargar productos")
       }
     } catch (error) {
       console.error("Error fetching productos:", error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los productos",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -73,7 +87,7 @@ export default function ProductosPage() {
 
   const fetchCategorias = async () => {
     try {
-      const res = await fetch("/api/categorias")
+      const res = await fetch("/api/categorias?includeCount=true")
       if (res.ok) {
         const data = await res.json()
         setCategorias(data.categorias)
@@ -91,25 +105,53 @@ export default function ProductosPage() {
         body: JSON.stringify({ activo: !producto.activo }),
       })
       if (res.ok) {
-        fetchProductos()
+        await fetchProductos() // Recargar productos
+        toast({
+          title: "Estado actualizado",
+          description: `Producto ${!producto.activo ? "activado" : "desactivado"} correctamente`,
+        })
+      } else {
+        throw new Error("Error al actualizar estado")
       }
     } catch (error) {
       console.error("Error updating producto:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del producto",
+        variant: "destructive",
+      })
     }
   }
 
   const handleDelete = async () => {
     if (!deleteDialog.producto) return
+    
     try {
       const res = await fetch(`/api/productos/${deleteDialog.producto.id}`, {
         method: "DELETE",
       })
+      
       if (res.ok) {
-        fetchProductos()
+        await Promise.all([
+          fetchProductos(), // Recargar productos
+          fetchCategorias() // Recargar categorías para actualizar contadores
+        ])
         setDeleteDialog({ open: false, producto: null })
+        toast({
+          title: "Producto eliminado",
+          description: "El producto ha sido eliminado correctamente",
+        })
+      } else {
+        const error = await res.json()
+        throw new Error(error.error || "Error al eliminar producto")
       }
     } catch (error) {
       console.error("Error deleting producto:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el producto",
+        variant: "destructive",
+      })
     }
   }
 
@@ -209,12 +251,12 @@ export default function ProductosPage() {
     )
   }
 
-      return (
+  return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#3D2314]">Productos</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Gestion del catalogo de productos</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Gestión del catálogo de productos</p>
         </div>
         <Button
           onClick={() => router.push("/admin/productos/nuevo")}
@@ -239,13 +281,13 @@ export default function ProductosPage() {
             filterComponent={
               <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
                 <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filtrar por categoria" />
+                  <SelectValue placeholder="Filtrar por categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas las categorias</SelectItem>
+                  <SelectItem value="todas">Todas las categorías</SelectItem>
                   {categorias.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      {cat.nombre}
+                      {cat.nombre} ({cat._count?.productos || 0})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -260,8 +302,8 @@ export default function ProductosPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Producto</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta seguro que desea eliminar el producto &quot;{deleteDialog.producto?.nombre}&quot;? 
-              Esta accion no se puede deshacer.
+              ¿Está seguro que desea eliminar el producto &quot;{deleteDialog.producto?.nombre}&quot;? 
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

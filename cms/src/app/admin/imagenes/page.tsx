@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Image as ImageIcon, Trash2, Plus, Check, X, Loader2 } from "lucide-react"
+import { Image as ImageIcon, Trash2, Plus, Check, X, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface Imagen {
   id: string
@@ -45,15 +46,22 @@ interface Imagen {
 }
 
 export default function ImagenesPage() {
+  const { toast } = useToast()
   const [imagenes, setImagenes] = useState<Imagen[]>([])
   const [tipoFilter, setTipoFilter] = useState<string>("todas")
   const [loading, setLoading] = useState(true)
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; imagen: Imagen | null }>({
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; imagen: Imagen | null; isLoading?: boolean }>({
     open: false,
     imagen: null,
+    isLoading: false,
   })
   const [addDialog, setAddDialog] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [urlError, setUrlError] = useState("")
+  const [nombreError, setNombreError] = useState("")
+  const [imageLoading, setImageLoading] = useState(false)
+  const [imageValid, setImageValid] = useState<boolean | null>(null)
+
   const [formData, setFormData] = useState({
     url: "",
     nombre: "",
@@ -80,6 +88,77 @@ export default function ImagenesPage() {
     }
   }
 
+  const validateUrl = (url: string): boolean => {
+    if (!url.trim()) {
+      setUrlError("La URL es requerida")
+      return false
+    }
+
+    // Validar formato de URL
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i
+    if (!urlPattern.test(url)) {
+      setUrlError("Ingrese una URL válida (ej: https://ejemplo.com/imagen.jpg)")
+      return false
+    }
+
+    setUrlError("")
+    return true
+  }
+
+  const validateNombre = (nombre: string): boolean => {
+    if (!nombre.trim()) {
+      setNombreError("El nombre es requerido")
+      return false
+    }
+    if (nombre.length < 3) {
+      setNombreError("El nombre debe tener al menos 3 caracteres")
+      return false
+    }
+    if (nombre.length > 100) {
+      setNombreError("El nombre no puede exceder los 100 caracteres")
+      return false
+    }
+    setNombreError("")
+    return true
+  }
+
+  const validateImageUrl = async (url: string): Promise<boolean> => {
+    if (!url) return false
+
+    setImageLoading(true)
+    setImageValid(null)
+
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        setImageValid(true)
+        setImageLoading(false)
+        resolve(true)
+      }
+      img.onerror = () => {
+        setImageValid(false)
+        setImageLoading(false)
+        resolve(false)
+      }
+      img.src = url
+    })
+  }
+
+  const handleUrlChange = async (url: string) => {
+    setFormData({ ...formData, url })
+    validateUrl(url)
+    if (validateUrl(url)) {
+      await validateImageUrl(url)
+    } else {
+      setImageValid(null)
+    }
+  }
+
+  const handleNombreChange = (nombre: string) => {
+    setFormData({ ...formData, nombre })
+    validateNombre(nombre)
+  }
+
   const handleToggleGaleria = async (imagen: Imagen) => {
     try {
       const res = await fetch(`/api/imagenes/${imagen.id}`, {
@@ -88,30 +167,88 @@ export default function ImagenesPage() {
         body: JSON.stringify({ enGaleria: !imagen.enGaleria }),
       })
       if (res.ok) {
-        fetchImagenes()
+        await fetchImagenes()
+        toast({
+          title: imagen.enGaleria ? "Imagen quitada de galería" : "Imagen agregada a galería",
+          description: `"${imagen.nombre}" ${imagen.enGaleria ? "ya no aparece" : "ahora aparece"} en la galería pública.`,
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el estado de la imagen.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error updating imagen:", error)
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
     }
   }
 
   const handleDelete = async () => {
     if (!deleteDialog.imagen) return
+
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }))
+    const imagenNombre = deleteDialog.imagen.nombre
+
     try {
       const res = await fetch(`/api/imagenes/${deleteDialog.imagen.id}`, {
         method: "DELETE",
       })
       if (res.ok) {
-        fetchImagenes()
-        setDeleteDialog({ open: false, imagen: null })
+        await fetchImagenes()
+        setDeleteDialog({ open: false, imagen: null, isLoading: false })
+        toast({
+          title: "Imagen eliminada",
+          description: `"${imagenNombre}" ha sido eliminada correctamente.`,
+        })
+      } else {
+        setDeleteDialog(prev => ({ ...prev, isLoading: false }))
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar la imagen.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error deleting imagen:", error)
+      setDeleteDialog(prev => ({ ...prev, isLoading: false }))
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
     }
   }
 
   const handleAddImagen = async () => {
-    if (!formData.url || !formData.nombre) return
+    // Validaciones
+    const isUrlValid = validateUrl(formData.url)
+    const isNombreValid = validateNombre(formData.nombre)
+
+    if (!isUrlValid || !isNombreValid) {
+      toast({
+        title: "Error de validación",
+        description: "Por favor corrija los errores en el formulario.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validar que la imagen cargue correctamente
+    const isValidImage = await validateImageUrl(formData.url)
+    if (!isValidImage) {
+      toast({
+        title: "URL inválida",
+        description: "La URL proporcionada no es una imagen válida o no se puede cargar.",
+        variant: "destructive",
+      })
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -120,8 +257,9 @@ export default function ImagenesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
+
       if (res.ok) {
-        fetchImagenes()
+        await fetchImagenes()
         setAddDialog(false)
         setFormData({
           url: "",
@@ -130,12 +268,45 @@ export default function ImagenesPage() {
           tipo: "general",
           enGaleria: false,
         })
+        setUrlError("")
+        setNombreError("")
+        setImageValid(null)
+        toast({
+          title: "Imagen agregada",
+          description: `"${formData.nombre}" ha sido agregada exitosamente.`,
+        })
+      } else {
+        const error = await res.json()
+        toast({
+          title: "Error",
+          description: error.error || "No se pudo agregar la imagen.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error adding imagen:", error)
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleResetDialog = () => {
+    setAddDialog(false)
+    setFormData({
+      url: "",
+      nombre: "",
+      alt: "",
+      tipo: "general",
+      enGaleria: false,
+    })
+    setUrlError("")
+    setNombreError("")
+    setImageValid(null)
   }
 
   const filteredImagenes = imagenes.filter((img) => {
@@ -175,10 +346,10 @@ export default function ImagenesPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#3D2314]">Imagenes</h1>
-          <p className="text-muted-foreground">Gestion de la galeria multimedia</p>
+          <p className="text-muted-foreground">Gestión de la galería multimedia</p>
         </div>
         <Button
           onClick={() => setAddDialog(true)}
@@ -191,48 +362,46 @@ export default function ImagenesPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[#3D2314]">Galeria de Imagenes</CardTitle>
+        <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="text-[#3D2314] text-lg sm:text-xl">Galería de Imágenes</CardTitle>
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por tipo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todos los tipos</SelectItem>
                 <SelectItem value="producto">Producto</SelectItem>
-                <SelectItem value="galeria">Galeria</SelectItem>
+                <SelectItem value="galeria">Galería</SelectItem>
                 <SelectItem value="general">General</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {filteredImagenes.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No hay imagenes registradas</p>
+              <p>No hay imágenes registradas</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredImagenes.map((imagen) => (
                 <Card key={imagen.id} className="overflow-hidden">
-                  <div className="aspect-video relative bg-muted">
-                    {imagen.url ? (
-                      <img
-                        src={imagen.url}
-                        alt={imagen.alt || imagen.nombre}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="w-12 h-12 text-muted-foreground" />
-                      </div>
-                    )}
+                  <div className="aspect-video relative bg-gray-100">
+                    <img
+                      src={imagen.url}
+                      alt={imagen.alt || imagen.nombre}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder-image.png"
+                        e.currentTarget.onerror = null
+                      }}
+                    />
                     {imagen.enGaleria && (
                       <div className="absolute top-2 right-2">
                         <Badge style={{ backgroundColor: "#6B8E5A", color: "white" }}>
-                          En Galeria
+                          En Galería
                         </Badge>
                       </div>
                     )}
@@ -242,14 +411,15 @@ export default function ImagenesPage() {
                       <h3 className="font-medium text-[#3D2314] truncate">{imagen.nombre}</h3>
                       <div className="flex items-center justify-between">
                         <Badge variant={getTipoBadgeVariant(imagen.tipo)} style={getTipoBadgeStyle(imagen.tipo)}>
-                          {imagen.tipo}
+                          {imagen.tipo === "producto" ? "Producto" : imagen.tipo === "galeria" ? "Galería" : "General"}
                         </Badge>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleToggleGaleria(imagen)}
-                            title={imagen.enGaleria ? "Quitar de galeria" : "Agregar a galeria"}
+                            title={imagen.enGaleria ? "Quitar de galería" : "Agregar a galería"}
+                            className="h-8 w-8"
                           >
                             {imagen.enGaleria ? (
                               <Check className="w-4 h-4 text-green-600" />
@@ -260,8 +430,9 @@ export default function ImagenesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setDeleteDialog({ open: true, imagen })}
+                            onClick={() => setDeleteDialog({ open: true, imagen, isLoading: false })}
                             title="Eliminar"
+                            className="h-8 w-8"
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
@@ -276,110 +447,176 @@ export default function ImagenesPage() {
         </CardContent>
       </Card>
 
-      {/* Add Image Dialog */}
-      <Dialog open={addDialog} onOpenChange={setAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nueva Imagen</DialogTitle>
-            <DialogDescription>
-              Agrega una nueva imagen proporcionando la URL
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="url">URL de la imagen *</Label>
-              <Input
-                id="url"
-                placeholder="https://ejemplo.com/imagen.jpg"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre *</Label>
-              <Input
-                id="nombre"
-                placeholder="Nombre descriptivo"
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="alt">Texto alternativo</Label>
-              <Input
-                id="alt"
-                placeholder="Descripcion de la imagen"
-                value={formData.alt}
-                onChange={(e) => setFormData({ ...formData, alt: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo</Label>
-              <Select
-                value={formData.tipo}
-                onValueChange={(value) => setFormData({ ...formData, tipo: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">General</SelectItem>
-                  <SelectItem value="producto">Producto</SelectItem>
-                  <SelectItem value="galeria">Galeria</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="enGaleria"
-                checked={formData.enGaleria}
-                onCheckedChange={(checked) => setFormData({ ...formData, enGaleria: checked as boolean })}
-              />
-              <Label htmlFor="enGaleria" className="cursor-pointer">
-                Mostrar en galeria publica
-              </Label>
-            </div>
+{/* Add Image Dialog */}
+<Dialog open={addDialog} onOpenChange={(open) => !open && handleResetDialog()}>
+  <DialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
+    <DialogHeader>
+      <DialogTitle className="text-lg sm:text-xl">Nueva Imagen</DialogTitle>
+      <DialogDescription className="text-sm">
+        Agrega una nueva imagen proporcionando la URL
+      </DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="url" className="text-[#3D2314]">
+          URL de la imagen{' '}
+          <span className={`${(!formData.url || urlError) ? 'text-red-500' : 'text-[#3D2314]'} transition-colors`}>
+            *
+          </span>
+        </Label>
+        <div className="relative">
+          <Input
+            id="url"
+            placeholder="https://ejemplo.com/imagen.jpg"
+            value={formData.url}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className={`w-full ${urlError ? "border-red-500" : ""} ${
+              imageValid === true && !urlError && formData.url ? "border-green-500" : ""
+            } pr-10`}
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            {imageLoading && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {imageValid === true && !imageLoading && formData.url && (
+              <Check className="w-4 h-4 text-green-500" />
+            )}
+            {imageValid === false && !imageLoading && formData.url && (
+              <AlertCircle className="w-4 h-4 text-red-500" />
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAddImagen}
-              disabled={!formData.url || !formData.nombre || submitting}
-              style={{ backgroundColor: "#3D2314" }}
-              className="text-white hover:opacity-90"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                "Guardar"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+        {urlError && <p className="text-xs text-red-500">{urlError}</p>}
+        {imageValid === true && !urlError && formData.url && (
+          <p className="text-xs text-green-500">✓ Imagen válida</p>
+        )}
+        {imageValid === false && !urlError && formData.url && (
+          <p className="text-xs text-red-500">✗ La imagen no se pudo cargar</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="nombre" className="text-[#3D2314]">
+          Nombre{' '}
+          <span className={`${(!formData.nombre || nombreError) ? 'text-red-500' : 'text-[#3D2314]'} transition-colors`}>
+            *
+          </span>
+        </Label>
+        <Input
+          id="nombre"
+          placeholder="Nombre descriptivo"
+          value={formData.nombre}
+          onChange={(e) => handleNombreChange(e.target.value)}
+          className={`w-full ${nombreError ? "border-red-500" : ""} ${
+            !nombreError && formData.nombre ? "border-green-500" : ""
+          }`}
+        />
+        {nombreError && <p className="text-xs text-red-500">{nombreError}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="alt" className="text-[#3D2314]">Texto alternativo</Label>
+        <Input
+          id="alt"
+          placeholder="Descripción de la imagen (accesibilidad)"
+          value={formData.alt}
+          onChange={(e) => setFormData({ ...formData, alt: e.target.value })}
+          className="w-full"
+        />
+        <p className="text-xs text-muted-foreground">
+          Importante para accesibilidad y SEO
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="tipo" className="text-[#3D2314]">Tipo</Label>
+        <Select
+          value={formData.tipo}
+          onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Seleccionar tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="general">General</SelectItem>
+            <SelectItem value="producto">Producto</SelectItem>
+            <SelectItem value="galeria">Galería</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="enGaleria"
+          checked={formData.enGaleria}
+          onCheckedChange={(checked) => setFormData({ ...formData, enGaleria: checked as boolean })}
+        />
+        <Label htmlFor="enGaleria" className="cursor-pointer text-sm">
+          Mostrar en galería pública
+        </Label>
+      </div>
+    </div>
+    <DialogFooter className="flex-col sm:flex-row gap-2">
+      <Button variant="outline" onClick={handleResetDialog} className="w-full sm:w-auto">
+        Cancelar
+      </Button>
+      <Button
+        onClick={handleAddImagen}
+        disabled={!formData.url || !formData.nombre || submitting || imageValid === false}
+        style={{ backgroundColor: "#3D2314" }}
+        className="w-full sm:w-auto text-white hover:opacity-90 disabled:opacity-50"
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Guardando...
+          </>
+        ) : (
+          "Guardar"
+        )}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, imagen: null })}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !deleteDialog.isLoading) {
+            setDeleteDialog({ open: false, imagen: null, isLoading: false })
+          }
+        }}
+      >
+        <AlertDialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Imagen</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta seguro que desea eliminar la imagen &quot;{deleteDialog.imagen?.nombre}&quot;?
-              Esta accion no se puede deshacer.
+            <AlertDialogTitle className="text-lg sm:text-xl">Eliminar Imagen</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm break-words">
+              ¿Está seguro que desea eliminar la imagen <span className="font-semibold">"{deleteDialog.imagen?.nombre}"</span>?
+              <br />
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel
+              disabled={deleteDialog.isLoading}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={deleteDialog.isLoading}
+              className="w-full sm:w-auto bg-destructive text-white hover:bg-destructive/90"
             >
-              Eliminar
+              {deleteDialog.isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

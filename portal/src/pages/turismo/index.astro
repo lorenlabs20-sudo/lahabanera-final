@@ -1,9 +1,11 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import PageHero from '../../components/PageHero.astro';
+import Toast from '../../components/Toast.astro';
 ---
 
 <MainLayout title="Turismo Rural" description="Reserve su visita a Finca La Habanera - Turismo rural, degustacion de productos y experiencia caprina">
+  <Toast />
   <!-- Hero -->
   <PageHero 
     title="Turismo Rural"
@@ -71,33 +73,38 @@ import PageHero from '../../components/PageHero.astro';
         
         <div class="reserva-form-container" id="reserva-form">
           <h2>Solicite su Visita</h2>
-          <form id="reserva-form-element" class="reserva-form">
+          <form id="reserva-form-element" class="reserva-form" novalidate>
             <div class="form-row">
               <div class="form-group">
                 <label for="nombre" class="form-label">Nombre completo *</label>
-                <input type="text" id="nombre" name="nombre" required class="form-input" placeholder="Su nombre">
+                <input type="text" id="nombre" name="nombre" class="form-input" placeholder="Su nombre">
+                <div class="error-message" id="nombre-error"></div>
               </div>
             </div>
             
             <div class="form-row two-cols">
               <div class="form-group">
                 <label for="email" class="form-label">Email *</label>
-                <input type="email" id="email" name="email" required class="form-input" placeholder="correo@ejemplo.com">
+                <input type="email" id="email" name="email" class="form-input" placeholder="correo@ejemplo.com">
+                <div class="error-message" id="email-error"></div>
               </div>
               <div class="form-group">
                 <label for="telefono" class="form-label">Telefono</label>
                 <input type="tel" id="telefono" name="telefono" class="form-input" placeholder="+53 5 XXX XXXX">
+                <div class="error-message" id="telefono-error"></div>
               </div>
             </div>
             
             <div class="form-row two-cols">
               <div class="form-group">
                 <label for="fecha" class="form-label">Fecha deseada *</label>
-                <input type="date" id="fecha" name="fecha" required class="form-input">
+                <input type="date" id="fecha" name="fecha" class="form-input">
+                <div class="error-message" id="fecha-error"></div>
               </div>
               <div class="form-group">
                 <label for="personas" class="form-label">Numero de personas *</label>
-                <input type="number" id="personas" name="personas" min="1" max="50" required class="form-input" placeholder="1">
+                <input type="number" id="personas" name="personas" min="1" max="50" class="form-input" placeholder="1">
+                <div class="error-message" id="personas-error"></div>
               </div>
             </div>
             
@@ -105,6 +112,7 @@ import PageHero from '../../components/PageHero.astro';
               <div class="form-group">
                 <label for="comentarios" class="form-label">Comentarios</label>
                 <textarea id="comentarios" name="comentarios" class="form-textarea" placeholder="Alguna solicitud especial, alergias alimentarias, etc."></textarea>
+                <div class="error-message" id="comentarios-error"></div>
               </div>
             </div>
             
@@ -246,11 +254,38 @@ import PageHero from '../../components/PageHero.astro';
   .success-message p {
     color: var(--color-tierra);
   }
+  
+  /* Estilos para mensajes de error */
+  .error-message {
+    color: #dc2626;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: none;
+  }
+  
+  .error-message.show {
+    display: block;
+  }
+  
+  .form-group.error input,
+  .form-group.error textarea {
+    border-color: #dc2626;
+  }
+  
+  .form-group {
+    margin-bottom: 0;
+  }
+  
+  .form-input.error,
+  .form-textarea.error {
+    border-color: #dc2626;
+  }
 </style>
 
 <script>
+
   const form = document.getElementById('reserva-form-element') as HTMLFormElement | null;
-  const successDiv = document.getElementById('reserva-success');
+  const successDiv = document.getElementById('reserva-success') as HTMLDivElement | null;
   
   // Set minimum date to today
   const fechaInput = document.getElementById('fecha') as HTMLInputElement | null;
@@ -259,41 +294,253 @@ import PageHero from '../../components/PageHero.astro';
     fechaInput.min = today;
   }
   
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  // Función para limpiar errores
+  function clearErrors(): void {
+    const errorMessages = document.querySelectorAll('.error-message');
+    errorMessages.forEach((error) => {
+      error.classList.remove('show');
+    });
     
-    const formData = new FormData(form);
-    const data = {
-      nombre: formData.get('nombre'),
-      email: formData.get('email'),
-      telefono: formData.get('telefono'),
-      fecha: formData.get('fecha'),
-      personas: Number(formData.get('personas')) || 0,
-      comentarios: formData.get('comentarios'),
-      estado: 'pendiente'
-    };
-
-    const apiBase = import.meta.env.PUBLIC_CMS_API_URL || 'http://localhost:3000';
-
-    try {
-      const response = await fetch(`${apiBase}/api/reservas`, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-      
-      if (response.ok) {
-        form.style.display = 'none';
-        if (successDiv) successDiv.style.display = 'block';
-      } else {
-        alert('Hubo un error al enviar la solicitud. Por favor, intente de nuevo.');
+    const inputs = document.querySelectorAll('.form-input, .form-textarea');
+    inputs.forEach((input) => {
+      input.classList.remove('error');
+    });
+  }
+  
+  // Función para mostrar error
+  function showError(inputId: string, message: string): void {
+    const errorElement = document.getElementById(`${inputId}-error`);
+    const inputElement = document.getElementById(inputId) as HTMLInputElement | HTMLTextAreaElement | null;
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.classList.add('show');
+    }
+    if (inputElement) {
+      inputElement.classList.add('error');
+    }
+  }
+  
+  // Validaciones personalizadas
+  function validateForm(): boolean {
+    let isValid = true;
+    clearErrors();
+    
+    // Validar nombre
+    const nombreInput = document.getElementById('nombre') as HTMLInputElement | null;
+    const nombre = nombreInput?.value?.trim() || '';
+    if (!nombre) {
+      showError('nombre', 'El nombre completo es requerido');
+      isValid = false;
+    } else if (nombre.length < 3) {
+      showError('nombre', 'El nombre debe tener al menos 3 caracteres');
+      isValid = false;
+    } else if (!/^[a-zA-ZáéíóúñÑüÜ\s]+$/.test(nombre)) {
+      showError('nombre', 'El nombre solo puede contener letras y espacios');
+      isValid = false;
+    }
+    
+    // Validar email
+    const emailInput = document.getElementById('email') as HTMLInputElement | null;
+    const email = emailInput?.value?.trim() || '';
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!email) {
+      showError('email', 'El email es requerido');
+      isValid = false;
+    } else if (!emailRegex.test(email)) {
+      showError('email', 'Ingrese un email válido (ejemplo: correo@dominio.com)');
+      isValid = false;
+    }
+    
+    // Validar teléfono (opcional pero si se ingresa debe ser válido)
+    const telefonoInput = document.getElementById('telefono') as HTMLInputElement | null;
+    const telefono = telefonoInput?.value?.trim() || '';
+    if (telefono) {
+      const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{3,4}[-\s\.]?[0-9]{3,4}$/;
+      if (!phoneRegex.test(telefono)) {
+        showError('telefono', 'Ingrese un número de teléfono válido');
+        isValid = false;
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Hubo un error al enviar la solicitud. Por favor, intente de nuevo.');
+    }
+    
+    // Validar fecha
+    const fechaInputEl = document.getElementById('fecha') as HTMLInputElement | null;
+    const fecha = fechaInputEl?.value || '';
+    if (!fecha) {
+      showError('fecha', 'La fecha es requerida');
+      isValid = false;
+    } else {
+      const selectedDate = new Date(fecha);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        showError('fecha', 'La fecha no puede ser anterior a hoy');
+        isValid = false;
+      }
+    }
+    
+    // Validar número de personas
+    const personasInput = document.getElementById('personas') as HTMLInputElement | null;
+    const personas = personasInput?.value || '';
+    if (!personas) {
+      showError('personas', 'El número de personas es requerido');
+      isValid = false;
+    } else {
+      const personasNum = parseInt(personas);
+      if (isNaN(personasNum) || personasNum < 1) {
+        showError('personas', 'Debe ser al menos 1 persona');
+        isValid = false;
+      } else if (personasNum > 50) {
+        showError('personas', 'Máximo 50 personas por reserva');
+        isValid = false;
+      }
+    }
+    
+    return isValid;
+  }
+  
+  if (form) {
+    form.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      
+      // Validar el formulario
+      if (!validateForm()) {
+        window.toast?.error('Por favor, corrija los errores en el formulario');
+        return;
+      }
+      
+      const formData = new FormData(form);
+      const data = {
+        nombre: formData.get('nombre') as string,
+        email: formData.get('email') as string,
+        telefono: (formData.get('telefono') as string) || '',
+        fecha: formData.get('fecha') as string,
+        personas: Number(formData.get('personas')) || 0,
+        comentarios: (formData.get('comentarios') as string) || '',
+        estado: 'pendiente',
+        fechaSolicitud: new Date().toISOString()
+      };
+      
+      // Mostrar los datos en consola para verificar
+      console.log('=== DATOS DEL FORMULARIO ===');
+      console.log('Datos a enviar:', data);
+      console.log('============================');
+      
+      const apiBase = import.meta.env.PUBLIC_CMS_API_URL || 'http://localhost:3000';
+      
+      try {
+        // Mostrar estado de envío
+        const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        const originalButtonText = submitButton?.innerHTML;
+        if (submitButton) {
+          submitButton.innerHTML = 'Enviando...';
+          submitButton.disabled = true;
+        }
+        
+        console.log(`Enviando a: ${apiBase}/api/reservas`);
+        
+        const response = await fetch(`${apiBase}/api/reservas`, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        console.log('Respuesta del servidor:', response);
+        console.log('Status:', response.status);
+        console.log('Status text:', response.statusText);
+        
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log('Datos de respuesta:', responseData);
+          console.log('✅ Formulario enviado exitosamente!');
+          
+          window.toast?.success('¡Solicitud enviada con éxito! Nos pondremos en contacto pronto.');
+          
+          if (form) form.style.display = 'none';
+          if (successDiv) successDiv.style.display = 'block';
+        } else {
+          const errorData = await response.text();
+          console.error('Error en el envío:', errorData);
+          window.toast?.error('Error al enviar la solicitud. Por favor, intente de nuevo.');
+          
+          // Restaurar botón
+          const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+          if (submitButton) {
+            submitButton.innerHTML = originalButtonText || '';
+            submitButton.disabled = false;
+          }
+        }
+      } catch (error) {
+        console.error('Error de conexión:', error);
+        window.toast?.error('Error de conexión. Verifique su conexión a internet.');
+        
+        // Restaurar botón
+        const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        if (submitButton) {
+          submitButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+              <line x1="16" x2="16" y1="2" y2="6"/>
+              <line x1="8" x2="8" y1="2" y2="6"/>
+              <line x1="3" x2="21" y1="10" y2="10"/>
+            </svg>
+            Enviar Solicitud
+          `;
+          submitButton.disabled = false;
+        }
+      }
+    });
+  }
+  
+  // Validación en tiempo real al perder el foco
+  const inputs: string[] = ['nombre', 'email', 'telefono', 'fecha', 'personas'];
+  inputs.forEach((inputId: string) => {
+    const input = document.getElementById(inputId) as HTMLInputElement | null;
+    if (input) {
+      input.addEventListener('blur', () => {
+        // Limpiar error específico del campo
+        const errorElement = document.getElementById(`${inputId}-error`);
+        if (errorElement) {
+          errorElement.classList.remove('show');
+        }
+        input.classList.remove('error');
+        
+        // Validar el campo específico
+        if (inputId === 'nombre') {
+          const value = input.value.trim();
+          if (value && value.length < 3) {
+            showError('nombre', 'El nombre debe tener al menos 3 caracteres');
+          } else if (value && !/^[a-zA-ZáéíóúñÑüÜ\s]+$/.test(value)) {
+            showError('nombre', 'El nombre solo puede contener letras y espacios');
+          }
+        } else if (inputId === 'email' && input.value.trim()) {
+          const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+          if (!emailRegex.test(input.value.trim())) {
+            showError('email', 'Ingrese un email válido');
+          }
+        } else if (inputId === 'telefono' && input.value.trim()) {
+          const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{3,4}[-\s\.]?[0-9]{3,4}$/;
+          if (!phoneRegex.test(input.value.trim())) {
+            showError('telefono', 'Ingrese un número de teléfono válido');
+          }
+        } else if (inputId === 'fecha' && input.value) {
+          const selectedDate = new Date(input.value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (selectedDate < today) {
+            showError('fecha', 'La fecha no puede ser anterior a hoy');
+          }
+        } else if (inputId === 'personas' && input.value) {
+          const personasNum = parseInt(input.value);
+          if (personasNum < 1) {
+            showError('personas', 'Debe ser al menos 1 persona');
+          } else if (personasNum > 50) {
+            showError('personas', 'Máximo 50 personas por reserva');
+          }
+        }
+      });
     }
   });
 </script>

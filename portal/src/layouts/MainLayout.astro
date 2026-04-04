@@ -1,469 +1,85 @@
 ---
+import Header from "../components/Header.astro";
+import Toast from "../components/Toast.astro";
+import Footer from "../components/Footer.astro";
+
 interface Props {
   title: string;
   description?: string;
+  configuracion?: {
+    telefono?: string | null;
+    email?: string | null;
+    whatsapp?: string | null;
+    instagram?: string | null;
+    facebook?: string | null;
+    direccion?: string | null;
+  } | null;
 }
 
-const { title, description = 'Finca Caprina La Habanera - Productos lacteos caprinos de calidad en Mayabeque, Cuba' } = Astro.props;
+const {
+  title,
+  description = "Finca Caprina La Habanera - Productos lacteos caprinos de calidad en Mayabeque, Cuba",
+  configuracion,
+} = Astro.props;
+
+// Obtener la ruta actual para el header
+const currentPath = Astro.url.pathname;
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content={description}>
-  <meta name="theme-color" content="#3D2314">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content={`${title} | Finca La Habanera`}>
-  <meta property="og:description" content={description}>
-  <meta property="og:type" content="website">
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-  
-  <title>{title} | Finca La Habanera</title>
-  
-  <style is:global>
-    @import '../styles/global.css';
-  </style>
-</head>
-<body>
-  <!-- Header -->
-  <header class="header">
-    <div class="container">
-      <nav class="nav">
-        <a href="/" class="logo">
-          <img src="/Logo.png" alt="La Habanera" class="logo-img" />
-          <div class="logo-text">
-            <span class="logo-name">La Habanera</span>
-            <span class="logo-tagline">Finca Caprina</span>
-          </div>
-        </a>
-        
-        <button class="nav-toggle" aria-label="Menu">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
-        
-        <ul class="nav-menu">
-          <li><a href="/" class="nav-link">Inicio</a></li>
-          <li><a href="/productos" class="nav-link">Productos</a></li>
-          <li><a href="/galeria" class="nav-link">Galeria</a></li>
-          <li><a href="/turismo" class="nav-link">Turismo Rural</a></li>
-          <li><a href="/contacto" class="nav-link">Contacto</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-  
-  <!-- Main Content -->
-  <main class="main">
-    <slot />
-  </main>
-  
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="logo">
-            <img src="/Logo.png" alt="La Habanera" class="logo-img" />
-            <div class="logo-text">
-              <span class="logo-name">La Habanera</span>
-              <span class="logo-tagline">Finca Caprina</span>
-            </div>
-          </div>
-          <p class="footer-description">
-            Productos lacteos caprinos nutritivos y de alta calidad, 
-            promoviendo el bienestar animal y el desarrollo comunitario.
-          </p>
-        </div>
-        
-        <div class="footer-links">
-          <h4>Navegacion</h4>
-          <ul>
-            <li><a href="/">Inicio</a></li>
-            <li><a href="/productos">Productos</a></li>
-            <li><a href="/galeria">Galeria</a></li>
-            <li><a href="/turismo">Turismo Rural</a></li>
-            <li><a href="/contacto">Contacto</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-contact">
-          <h4>Contacto</h4>
-          <ul>
-            <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-              </svg>
-              <a href="tel:+5353972047">+53 5 3972047</a>
-            </li>
-            <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-              </svg>
-              <a href="mailto:lahaban3ra@gmail.com">lahaban3ra@gmail.com</a>
-            </li>
-            <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <span>Km 38-1/2, Carretera Central, San Pedro, San Jose de Las Lajas, Mayabeque, Cuba</span>
-            </li>
-          </ul>
-        </div>
-        
-        <div class="footer-social">
-          <h4>Redes Sociales</h4>
-          <div class="social-links">
-            <a href="https://wa.me/5353972047" target="_blank" rel="noopener" aria-label="WhatsApp">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-            </a>
-            <a href="#" aria-label="Instagram" class="disabled">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
-              </svg>
-            </a>
-            <a href="#" aria-label="Facebook" class="disabled">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-              </svg>
-            </a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="footer-bottom">
-        <p>&copy; 2025 Finca Caprina La Habanera. Todos los derechos reservados.</p>
-      </div>
-    </div>
-  </footer>
-  
-  <!-- WhatsApp Floating Button -->
-  <a href="https://wa.me/5353972047?text=Hola%2C%20me%20interesa%20conocer%20mas%20sobre%20sus%20productos" 
-     target="_blank" 
-     rel="noopener" 
-     class="whatsapp-float"
-     aria-label="Contactar por WhatsApp">
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-    </svg>
-  </a>
-  
-  <style>
-    .header {
-      position: sticky;
-      top: 0;
-      background-color: var(--color-crema);
-      box-shadow: 0 2px 10px rgba(61, 35, 20, 0.1);
-      z-index: 100;
-    }
-    
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 70px;
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-    }
-    
-    .logo-img {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#3D2314" />
 
-    @media (min-width: 768px) {
-    .logo-img {
-      width: 55px;
-      height: 55px;
-     }
-    }
-    .logo-icon {
-      width: 45px;
-      height: 45px;
-      background-color: var(--color-chocolate);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .logo-icon span {
-      color: var(--color-mantequilla);
-      font-weight: 700;
-      font-size: 1.25rem;
-    }
-    
-    .logo-text {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .logo-name {
-      font-weight: 700;
-      color: var(--color-chocolate);
-      font-size: 1.1rem;
-      line-height: 1.2;
-    }
-    
-    .logo-tagline {
-      font-size: 0.75rem;
-      color: var(--color-tierra);
-    }
+    <!-- Open Graph -->
+    <meta property="og:title" content={`${title} | Finca La Habanera`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
 
-    
-    
-    .nav-toggle {
-      display: block;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--color-chocolate);
-      padding: 0.5rem;
-    }
-    
-    .nav-menu {
-      display: none;
-      position: absolute;
-      top: 70px;
-      left: 0;
-      right: 0;
-      background-color: var(--color-crema);
-      list-style: none;
-      padding: 1rem;
-      box-shadow: 0 4px 10px rgba(61, 35, 20, 0.1);
-    }
-    
-    .nav-menu.active {
-      display: block;
-    }
-    
-    .nav-link {
-      display: block;
-      padding: 0.75rem 1rem;
-      text-decoration: none;
-      color: var(--color-chocolate);
-      font-weight: 500;
-      border-radius: 0.5rem;
-      transition: background-color 0.2s ease;
-    }
-    
-    .nav-link:hover {
-      background-color: var(--color-queso);
-    }
-    
-    .main {
-      min-height: calc(100vh - 70px);
-    }
-    
-    @media (min-width: 768px) {
-      .nav-toggle {
-        display: none;
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title} | Finca La Habanera</title>
+
+    <style is:global>
+      @import "../styles/global.css";
+    </style>
+  </head>
+  <body>
+    <!-- Header Component -->
+    <Header currentPath={currentPath} />
+
+    <!-- Toast Component -->
+    <Toast />
+
+    <!-- Main Content -->
+    <main class="main">
+      <slot />
+    </main>
+
+    <!-- Footer Component -->
+    <Footer configuracion={configuracion} />
+
+    <style>
+      .main {
+        min-height: calc(100vh - 70px);
       }
-      
-      .nav-menu {
-        display: flex;
-        position: static;
-        padding: 0;
-        box-shadow: none;
-        gap: 0.5rem;
-      }
-      
-      .nav-link {
-        padding: 0.5rem 1rem;
-      }
-    }
-    
-    .footer {
-      background-color: var(--color-chocolate);
-      color: var(--color-crema);
-      padding: 3rem 0 1.5rem;
-    }
-    
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-    
-    @media (min-width: 768px) {
-      .footer-grid {
-        grid-template-columns: 2fr 1fr 1.5fr 1fr;
-      }
-    }
-    
-    .footer-brand .logo-icon {
-      background-color: var(--color-mantequilla);
-    }
-    
-    .footer-brand .logo-icon span {
-      color: var(--color-chocolate);
-    }
-    
-    .footer-brand .logo-name {
-      color: var(--color-crema);
-    }
-    
-    .footer-brand .logo-tagline {
-      color: var(--color-mantequilla);
-    }
-    
-    .footer-description {
-      margin-top: 1rem;
-      color: rgba(255, 248, 240, 0.8);
-      font-size: 0.9rem;
-    }
-    
-    .footer h4 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--color-mantequilla);
-    }
-    
-    .footer ul {
-      list-style: none;
-    }
-    
-    .footer-links a {
-      color: var(--color-crema);
-      text-decoration: none;
-      font-size: 0.9rem;
-      display: block;
-      padding: 0.25rem 0;
-      transition: color 0.2s ease;
-    }
-    
-    .footer-links a:hover {
-      color: var(--color-mantequilla);
-    }
-    
-    .footer-contact li {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-      font-size: 0.9rem;
-    }
-    
-    .footer-contact svg {
-      flex-shrink: 0;
-      margin-top: 2px;
-      color: var(--color-mantequilla);
-    }
-    
-    .footer-contact a {
-      color: var(--color-crema);
-      text-decoration: none;
-    }
-    
-    .footer-contact a:hover {
-      color: var(--color-mantequilla);
-    }
-    
-    .social-links {
-      display: flex;
-      gap: 1rem;
-    }
-    
-    .social-links a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      background-color: rgba(255, 248, 240, 0.1);
-      border-radius: 50%;
-      color: var(--color-crema);
-      transition: all 0.2s ease;
-    }
-    
-    .social-links a:hover {
-      background-color: var(--color-mantequilla);
-      color: var(--color-chocolate);
-    }
-    
-    .social-links a.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .footer-bottom {
-      border-top: 1px solid rgba(255, 248, 240, 0.2);
-      padding-top: 1.5rem;
-      text-align: center;
-      font-size: 0.85rem;
-      color: rgba(255, 248, 240, 0.7);
-    }
-    
-    .whatsapp-float {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      width: 60px;
-      height: 60px;
-      background-color: #25D366;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
-      z-index: 1000;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .whatsapp-float:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
-    }
-  </style>
-  
-  <script>
-    // Mobile menu toggle
-    const navToggle = document.querySelector('.nav-toggle');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    navToggle?.addEventListener('click', () => {
-      navMenu?.classList.toggle('active');
-    });
-    
-    // Close menu when clicking on a link
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        navMenu?.classList.remove('active');
+    </style>
+
+    <script>
+      // Lazy load images
+      document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
+        img.addEventListener("load", () => {
+          img.classList.add("loaded");
+        });
       });
-    });
-    
-    // Lazy load images
-    document.querySelectorAll('img[loading="lazy"]').forEach(img => {
-      img.addEventListener('load', () => {
-        img.classList.add('loaded');
-      });
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

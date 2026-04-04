@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface Reserva {
   id: string
@@ -40,13 +41,20 @@ interface Reserva {
 
 export default function ReservasPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [estadoFilter, setEstadoFilter] = useState<string>("todas")
   const [loading, setLoading] = useState(true)
-  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; reserva: Reserva | null; action: "confirmar" | "cancelar" | null }>({
+  const [confirmDialog, setConfirmDialog] = useState<{ 
+    open: boolean; 
+    reserva: Reserva | null; 
+    action: "confirmar" | "cancelar" | null;
+    isLoading?: boolean;
+  }>({
     open: false,
     reserva: null,
     action: null,
+    isLoading: false,
   })
 
   useEffect(() => {
@@ -68,22 +76,61 @@ export default function ReservasPage() {
   }
 
   const handleUpdateEstado = async () => {
-    if (!confirmDialog.reserva || !confirmDialog.action) return
+    // Guardar referencia de la reserva y acción antes de limpiar el estado
+    const currentReserva = confirmDialog.reserva
+    const currentAction = confirmDialog.action
+    
+    if (!currentReserva || !currentAction) return
 
-    const nuevoEstado = confirmDialog.action === "confirmar" ? "confirmada" : "cancelada"
+    // Mostrar loading
+    setConfirmDialog(prev => ({ ...prev, isLoading: true }))
+
+    const nuevoEstado = currentAction === "confirmar" ? "confirmada" : "cancelada"
+    const nombreReserva = currentReserva.nombre
 
     try {
-      const res = await fetch(`/api/reservas/${confirmDialog.reserva.id}`, {
+      const res = await fetch(`/api/reservas/${currentReserva.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: nuevoEstado }),
       })
+      
       if (res.ok) {
-        fetchReservas()
-        setConfirmDialog({ open: false, reserva: null, action: null })
+        // Primero actualizar la lista de reservas
+        await fetchReservas()
+        
+        // Luego cerrar el modal
+        setConfirmDialog({ open: false, reserva: null, action: null, isLoading: false })
+        
+        // Mostrar toast según la acción
+        if (currentAction === "confirmar") {
+          toast({
+            title: "Reserva confirmada",
+            description: `La reserva de ${nombreReserva} ha sido confirmada exitosamente.`,
+          })
+        } else {
+          toast({
+            title: "Reserva cancelada",
+            description: `La reserva de ${nombreReserva} ha sido cancelada.`,
+            variant: "destructive",
+          })
+        }
+      } else {
+        setConfirmDialog(prev => ({ ...prev, isLoading: false }))
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el estado de la reserva.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error updating reserva:", error)
+      setConfirmDialog(prev => ({ ...prev, isLoading: false }))
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -98,7 +145,7 @@ export default function ReservasPage() {
         return (
           <Badge
             variant="outline"
-            className="bg-yellow-100 text-yellow-800 border-yellow-300"
+            className="bg-yellow-100 text-yellow-800 border-yellow-300 whitespace-nowrap"
           >
             Pendiente
           </Badge>
@@ -107,7 +154,7 @@ export default function ReservasPage() {
         return (
           <Badge
             variant="outline"
-            className="bg-green-100 text-green-800 border-green-300"
+            className="bg-green-100 text-green-800 border-green-300 whitespace-nowrap"
           >
             Confirmada
           </Badge>
@@ -116,13 +163,13 @@ export default function ReservasPage() {
         return (
           <Badge
             variant="outline"
-            className="bg-red-100 text-red-800 border-red-300"
+            className="bg-red-100 text-red-800 border-red-300 whitespace-nowrap"
           >
             Cancelada
           </Badge>
         )
       default:
-        return <Badge variant="outline">{estado}</Badge>
+        return <Badge variant="outline" className="whitespace-nowrap">{estado}</Badge>
     }
   }
 
@@ -131,16 +178,18 @@ export default function ReservasPage() {
       accessorKey: "nombre",
       header: "Nombre",
       cell: ({ row }) => (
-        <div className="font-medium text-[#3D2314]">{row.original.nombre}</div>
+        <div className="font-medium text-[#3D2314] truncate max-w-[120px] sm:max-w-none">
+          {row.original.nombre}
+        </div>
       ),
     },
     {
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Mail className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm">{row.original.email}</span>
+        <div className="flex items-center gap-2 truncate max-w-[150px] sm:max-w-none">
+          <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-sm truncate">{row.original.email}</span>
         </div>
       ),
     },
@@ -149,7 +198,7 @@ export default function ReservasPage() {
       header: "Telefono",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Phone className="w-4 h-4 text-muted-foreground" />
+          <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <span className="text-sm">{row.original.telefono || "-"}</span>
         </div>
       ),
@@ -159,8 +208,8 @@ export default function ReservasPage() {
       header: "Fecha",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm">{row.original.fecha}</span>
+          <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-sm whitespace-nowrap">{row.original.fecha}</span>
         </div>
       ),
     },
@@ -169,7 +218,7 @@ export default function ReservasPage() {
       header: "Personas",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-muted-foreground" />
+          <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <span className="text-sm">{row.original.personas}</span>
         </div>
       ),
@@ -189,12 +238,13 @@ export default function ReservasPage() {
         const isCancelada = reserva.estado === "cancelada"
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => router.push(`/admin/reservas/${reserva.id}`)}
               title="Ver detalles"
+              className="h-8 w-8 sm:h-9 sm:w-9"
             >
               <Eye className="w-4 h-4" />
             </Button>
@@ -202,9 +252,9 @@ export default function ReservasPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setConfirmDialog({ open: true, reserva, action: "confirmar" })}
+                onClick={() => setConfirmDialog({ open: true, reserva, action: "confirmar", isLoading: false })}
                 title="Confirmar"
-                className="text-green-600 hover:text-green-700"
+                className="text-green-600 hover:text-green-700 h-8 w-8 sm:h-9 sm:w-9"
               >
                 <Check className="w-4 h-4" />
               </Button>
@@ -213,9 +263,9 @@ export default function ReservasPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setConfirmDialog({ open: true, reserva, action: "cancelar" })}
+                onClick={() => setConfirmDialog({ open: true, reserva, action: "cancelar", isLoading: false })}
                 title="Cancelar"
-                className="text-destructive hover:text-destructive"
+                className="text-red-600 hover:text-red-700 h-8 w-8 sm:h-9 sm:w-9"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -244,47 +294,47 @@ export default function ReservasPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#3D2314]">Reservas</h1>
-          <p className="text-muted-foreground">Gestion de reservas de turismo rural</p>
+          <p className="text-muted-foreground">Gestión de reservas de turismo rural</p>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <Card>
-          <CardContent className="pt-6">
+      {/* Stats Cards - Responsive en columna en móvil */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="w-full">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pendientes</p>
-                <p className="text-2xl font-bold text-yellow-600">{pendientesCount}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Pendientes</p>
+                <p className="text-xl sm:text-2xl font-bold text-yellow-600">{pendientesCount}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                <Calendar className="w-5 h-5 sm:w-6 sm:w-6 text-yellow-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="w-full">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Confirmadas</p>
-                <p className="text-2xl font-bold text-green-600">{confirmadasCount}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Confirmadas</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{confirmadasCount}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-5 h-5 sm:w-6 sm:w-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="w-full">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Canceladas</p>
-                <p className="text-2xl font-bold text-red-600">{canceladasCount}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Canceladas</p>
+                <p className="text-xl sm:text-2xl font-bold text-red-600">{canceladasCount}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <X className="w-6 h-6 text-red-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <X className="w-5 h-5 sm:w-6 sm:w-6 text-red-600" />
               </div>
             </div>
           </CardContent>
@@ -292,9 +342,9 @@ export default function ReservasPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[#3D2314]">Lista de Reservas</CardTitle>
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="text-[#3D2314] text-lg sm:text-xl">Lista de Reservas</CardTitle>
             <Select value={estadoFilter} onValueChange={setEstadoFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por estado" />
@@ -308,7 +358,7 @@ export default function ReservasPage() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           <DataTable
             columns={columns}
             data={filteredReservas}
@@ -321,30 +371,47 @@ export default function ReservasPage() {
       {/* Confirm/Cancel Dialog */}
       <AlertDialog
         open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog({ open, reserva: null, action: null })}
+        onOpenChange={(open) => {
+          if (!open && !confirmDialog.isLoading) {
+            setConfirmDialog({ open: false, reserva: null, action: null, isLoading: false })
+          }
+        }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-lg sm:text-xl">
               {confirmDialog.action === "confirmar" ? "Confirmar Reserva" : "Cancelar Reserva"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-sm">
               {confirmDialog.action === "confirmar"
-                ? `Esta seguro que desea confirmar la reserva de "${confirmDialog.reserva?.nombre}"?`
-                : `Esta seguro que desea cancelar la reserva de "${confirmDialog.reserva?.nombre}"?`}
+                ? `¿Está seguro que desea confirmar la reserva de "${confirmDialog.reserva?.nombre || ''}"?`
+                : `¿Está seguro que desea cancelar la reserva de "${confirmDialog.reserva?.nombre || ''}"?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel 
+              disabled={confirmDialog.isLoading}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleUpdateEstado}
-              className={
+              disabled={confirmDialog.isLoading}
+              className={`w-full sm:w-auto ${
                 confirmDialog.action === "confirmar"
                   ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-destructive text-white hover:bg-destructive/90"
-              }
+                  : "bg-green-600 text-white hover:bg-green-700"
+              }`}
             >
-              {confirmDialog.action === "confirmar" ? "Confirmar" : "Cancelar Reserva"}
+              {confirmDialog.isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Procesando...
+                </>
+              ) : (
+                confirmDialog.action === "confirmar" ? "Confirmar" : "Confirmar"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

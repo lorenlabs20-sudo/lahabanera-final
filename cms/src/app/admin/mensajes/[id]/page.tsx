@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Mail, MailOpen, Trash2, Phone, Mail as MailIcon, Calendar, User, MessageSquare } from "lucide-react"
+import { ArrowLeft, Mail, MailOpen, Trash2, Phone, Mail as MailIcon, Calendar, User, MessageSquare, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface Mensaje {
   id: string
@@ -31,9 +32,12 @@ interface Mensaje {
 export default function MensajeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
+  const { toast } = useToast()
   const [mensaje, setMensaje] = useState<Mensaje | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleteDialog, setDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
 
   useEffect(() => {
     fetchMensaje()
@@ -71,33 +75,87 @@ export default function MensajeDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const handleToggleLeido = async () => {
-    if (!mensaje) return
+    if (!mensaje || isToggling) return
+
+    setIsToggling(true)
+    const nuevoEstado = !mensaje.leido
+    const mensajeNombre = mensaje.nombre
+
     try {
       const res = await fetch(`/api/mensajes/${mensaje.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leido: !mensaje.leido }),
+        body: JSON.stringify({ leido: nuevoEstado }),
       })
+
       if (res.ok) {
         const data = await res.json()
         setMensaje(data.mensaje)
+
+        if (nuevoEstado) {
+          toast({
+            title: "Mensaje marcado como leído",
+            description: `El mensaje de ${mensajeNombre} ha sido marcado como leído.`,
+          })
+        } else {
+          toast({
+            title: "Mensaje marcado como no leído",
+            description: `El mensaje de ${mensajeNombre} ha sido marcado como no leído.`,
+          })
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el estado del mensaje.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error updating mensaje:", error)
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsToggling(false)
     }
   }
 
   const handleDelete = async () => {
-    if (!mensaje) return
+    if (!mensaje || isDeleting) return
+
+    setIsDeleting(true)
+    const mensajeNombre = mensaje.nombre
+
     try {
       const res = await fetch(`/api/mensajes/${mensaje.id}`, {
         method: "DELETE",
       })
+
       if (res.ok) {
+        toast({
+          title: "Mensaje eliminado",
+          description: `El mensaje de ${mensajeNombre} ha sido eliminado correctamente.`,
+        })
         router.push("/admin/mensajes")
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar el mensaje.",
+          variant: "destructive",
+        })
+        setDeleteDialog(false)
       }
     } catch (error) {
       console.error("Error deleting mensaje:", error)
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -130,105 +188,111 @@ export default function MensajeDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push("/admin/mensajes")}
             title="Volver"
+            className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-[#3D2314]">Detalle del Mensaje</h1>
-            <p className="text-muted-foreground">Enviado el {formatDate(mensaje.creadoEn)}</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#3D2314] truncate">
+              Detalle del Mensaje
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+              Enviado el {formatDate(mensaje.creadoEn)}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
           <Button
             variant="outline"
             onClick={handleToggleLeido}
-            className="gap-2"
+            disabled={isToggling}
+            className="gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4"
           >
-            {mensaje.leido ? (
-              <>
-                <MailOpen className="w-4 h-4" />
-                Marcar como no leido
-              </>
+            {isToggling ? (
+              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+            ) : mensaje.leido ? (
+              <MailOpen className="w-3 h-3 sm:w-4 sm:h-4" />
             ) : (
-              <>
-                <Mail className="w-4 h-4" />
-                Marcar como leido
-              </>
+              <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
             )}
+            <span className="hidden xs:inline">
+              {mensaje.leido ? "Marcar no leído" : "Marcar leído"}
+            </span>
           </Button>
           <Button
             variant="destructive"
             onClick={() => setDeleteDialog(true)}
-            className="gap-2"
+            className="gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4"
           >
-            <Trash2 className="w-4 h-4" />
-            Eliminar
+            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">Eliminar</span>
           </Button>
         </div>
       </div>
 
-      {/* Message Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Message Content - Responsive Grid */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Main Message */}
         <Card className="lg:col-span-2">
-          <CardHeader className="border-b">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-[#3D2314] text-xl">
-                  {mensaje.asunto}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge 
-                    variant={mensaje.leido ? "secondary" : "default"}
-                    style={!mensaje.leido ? { backgroundColor: "#D4A574", color: "#3D2314" } : {}}
-                  >
-                    {mensaje.leido ? "Leido" : "No leido"}
-                  </Badge>
-                </div>
+          <CardHeader className="border-b px-4 sm:px-6 py-4 sm:py-6">
+            <div className="space-y-2">
+              <CardTitle className="text-[#3D2314] text-lg sm:text-xl break-words">
+                {mensaje.asunto}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={mensaje.leido ? "secondary" : "default"}
+                  style={!mensaje.leido ? { backgroundColor: "#D4A574", color: "#3D2314" } : {}}
+                  className="whitespace-nowrap"
+                >
+                  {mensaje.leido ? "Leído" : "No leído"}
+                </Badge>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="px-4 sm:px-6 pt-6 pb-6">
             <div className="prose prose-sm max-w-none">
-              <p className="text-[#3D2314] whitespace-pre-wrap">{mensaje.mensaje}</p>
+              <p className="text-[#3D2314] whitespace-pre-wrap text-sm sm:text-base break-words">
+                {mensaje.mensaje}
+              </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Sender Info */}
         <Card>
-          <CardHeader className="border-b">
-            <CardTitle className="text-[#3D2314]">Informacion del Remitente</CardTitle>
+          <CardHeader className="border-b px-4 sm:px-6 py-4 sm:py-6">
+            <CardTitle className="text-[#3D2314] text-lg sm:text-xl">Información del Remitente</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="px-4 sm:px-6 pt-6 pb-6 space-y-4 sm:space-y-5">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-[#3D2314]" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#3D2314]" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Nombre</p>
-                <p className="font-medium text-[#3D2314]">{mensaje.nombre}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">Nombre</p>
+                <p className="font-medium text-[#3D2314] text-sm sm:text-base break-words">{mensaje.nombre}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
-                <MailIcon className="w-5 h-5 text-[#3D2314]" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
+                <MailIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#3D2314]" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <a 
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">Email</p>
+                <a
                   href={`mailto:${mensaje.email}`}
-                  className="font-medium text-[#D4A574] hover:underline"
+                  className="font-medium text-[#D4A574] hover:underline text-sm sm:text-base break-all"
                 >
                   {mensaje.email}
                 </a>
@@ -237,14 +301,14 @@ export default function MensajeDetailPage({ params }: { params: Promise<{ id: st
 
             {mensaje.telefono && (
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-5 h-5 text-[#3D2314]" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#3D2314]" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Telefono</p>
-                  <a 
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Teléfono</p>
+                  <a
                     href={`tel:${mensaje.telefono}`}
-                    className="font-medium text-[#D4A574] hover:underline"
+                    className="font-medium text-[#D4A574] hover:underline text-sm sm:text-base break-words"
                   >
                     {mensaje.telefono}
                   </a>
@@ -253,24 +317,24 @@ export default function MensajeDetailPage({ params }: { params: Promise<{ id: st
             )}
 
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-5 h-5 text-[#3D2314]" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#3D2314]" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Fecha de envio</p>
-                <p className="font-medium text-[#3D2314]">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">Fecha de envío</p>
+                <p className="font-medium text-[#3D2314] text-sm sm:text-base break-words">
                   {formatDate(mensaje.creadoEn)}
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
-                <MessageSquare className="w-5 h-5 text-[#3D2314]" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#E8E4D9] flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-[#3D2314]" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Asunto</p>
-                <p className="font-medium text-[#3D2314]">{mensaje.asunto}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">Asunto</p>
+                <p className="font-medium text-[#3D2314] text-sm sm:text-base break-words">{mensaje.asunto}</p>
               </div>
             </div>
           </CardContent>
@@ -279,21 +343,35 @@ export default function MensajeDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Mensaje</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta seguro que desea eliminar este mensaje de &quot;{mensaje.nombre}&quot;?
-              Esta accion no se puede deshacer.
+            <AlertDialogTitle className="text-lg sm:text-xl">Eliminar Mensaje</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm break-words">
+              ¿Está seguro que desea eliminar este mensaje de <span className="font-semibold">"{mensaje.nombre}"</span>?
+              <br />
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={isDeleting}
+              className="w-full sm:w-auto bg-destructive text-white hover:bg-destructive/90"
             >
-              Eliminar
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

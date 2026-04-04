@@ -107,15 +107,6 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold" style={{ color: '#3D2314' }}>Dashboard</h1>
           <p className="text-sm" style={{ color: '#6B5344' }}>Bienvenido al panel de administracion</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="gap-2"
-          style={{ borderColor: '#3D2314', color: '#3D2314' }}
-        >
-          <LogOut className="h-4 w-4" />
-          Cerrar Sesion
-        </Button>
       </div>
 
       {/* Stats */}

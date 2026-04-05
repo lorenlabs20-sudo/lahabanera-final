@@ -1,34 +1,42 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import PageHero from '../components/PageHero.astro';
-import { fetchCmsData } from '../lib/config';
+import MainLayout from "../layouts/MainLayout.astro";
+import PageHeroWithCarousel from "../components/PageHeroWithCarousel.astro"; // ← Cambiar import
+import { fetchCmsData } from "../lib/config";
 
-// Fetch all data from CMS is on request
+// Fetch all data from CMS
 const data = await fetchCmsData();
 const productos = data.productos?.slice(0, 6) || [];
 const imagenes = data.galeria?.slice(0, 4) || [];
 const config = data.configuracion;
+
+// Obtener slides para el carrusel de fondo
+const slides = data.heroSlides || [];
+
+console.log(`[Index] Slides obtenidos: ${slides.length}`);
+
+// Obtener valores de configuración
+const whatsapp = config?.whatsapp || "+5353972047";
+const whatsappClean = whatsapp?.replace(/[^0-9]/g, "") || "5353972047";
 ---
 
-<MainLayout title="Inicio">
-  <!-- Hero Section con imagen de fondo -->
-  <!-- Hero Section con imagen de fondo -->
-<PageHero 
-  title="Finca Caprina La Habanera"
-  subtitle="Productos lacteos artesanales de alta calidad en el corazon de Mayabeque, Cuba. Mas de 12 anos de tradicion familiar."
-  backgroundImage="https://images.unsplash.com/photo-1524024973431-2ad916746881?w=1920&q=80"
-  height="large"
-  badge="Bienvenidos"
-  showScrollIndicator={true}
-  primaryCta={{
-    text: "Ver Productos",
-    href: "/productos"
-  }}
-  secondaryCta={{
-    text: "Contactenos",
-    href: "/contacto"
-  }}
-/>
+<MainLayout title="Inicio" configuracion={config}>
+  <!-- Hero Section con carrusel de fondo -->
+  <PageHeroWithCarousel
+    slides={slides}
+    title="Finca Caprina La Habanera"
+    subtitle="Productos lácteos artesanales de alta calidad en el corazón de Mayabeque, Cuba. Más de 12 años de tradición familiar."
+    height="large"
+    badge="Bienvenidos"
+    showScrollIndicator={true}
+    primaryCta={{
+      text: "Ver Productos",
+      href: "/productos",
+    }}
+    secondaryCta={{
+      text: "Contáctenos",
+      href: "/contacto",
+    }}
+  />
 
   <!-- Historia Section -->
   <section class="section historia">
@@ -37,24 +45,35 @@ const config = data.configuracion;
       <div class="historia-content">
         <div class="historia-text">
           <p>
-            Creci junto a mi abuelo en Guanabacoa, aprendiendo el amor por las cabras y su importancia nutricional. 
-            Hoy, en <strong>La Habanera</strong>, continuo ese legado con un rebano de 140 cabras, manejadas con 
-            tecnicas semi-intensivas y nombradas individualmente para identificacion y manejo afectivo.
+            Crecí junto a mi abuelo en Guanabacoa, aprendiendo el amor por las
+            cabras y su importancia nutricional. Hoy, en <strong
+              >La Habanera</strong
+            >, continúo ese legado con un rebaño de 140 cabras, manejadas con
+            técnicas semi-intensivas y nombradas individualmente para
+            identificación y manejo afectivo.
           </p>
           <p>
-            Con mas de <strong>12 anos de tradicion</strong>, nuestra finca familiar de 3 caballerias se dedica 
-            a la produccion de leche de cabra y derivados, combinando la tradicion familiar con la innovacion 
-            agroecologica.
+            Con más de <strong>12 años de tradición</strong>, nuestra finca
+            familiar de 3 caballerías se dedica a la producción de leche de
+            cabra y derivados, combinando la tradición familiar con la
+            innovación agroecológica.
           </p>
         </div>
         <div class="historia-cards">
           <div class="mision-card">
-            <h3>Mision</h3>
-            <p>Ofrecer productos lacteos caprinos nutritivos y de alta calidad, promoviendo el bienestar animal y el desarrollo comunitario.</p>
+            <h3>Misión</h3>
+            <p>
+              Ofrecer productos lácteos caprinos nutritivos y de alta calidad,
+              promoviendo el bienestar animal y el desarrollo comunitario.
+            </p>
           </div>
           <div class="vision-card">
-            <h3>Vision</h3>
-            <p>Obtener reconocimiento como productora sostenible de leche de cabra en el pais combinando tradicion familiar con innovacion agroecologica.</p>
+            <h3>Visión</h3>
+            <p>
+              Obtener reconocimiento como productora sostenible de leche de
+              cabra en el país combinando tradición familiar con innovación
+              agroecológica.
+            </p>
           </div>
         </div>
       </div>
@@ -65,41 +84,61 @@ const config = data.configuracion;
   <section class="section productos-section">
     <div class="container">
       <h2 class="section-title">Nuestros Productos</h2>
-      <p class="section-subtitle">Descubra nuestra variedad de productos caprinos de alta calidad</p>
-      
-      {productos.length > 0 ? (
-        <div class="grid grid-3">
-          {productos.map((producto: any) => (
-            <article class="card producto-card">
-              <img 
-                src={producto.imagen || 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800&q=80'} 
-                alt={producto.nombre}
-                class="card-image"
-                loading="lazy"
-              />
-              <div class="card-content">
-                <span class="badge badge-primary">{producto.categoria?.nombre || 'Producto'}</span>
-                <h3 class="card-title">{producto.nombre}</h3>
-                <p class="card-text">{producto.descripcion?.slice(0, 100)}{producto.descripcion?.length > 100 ? '...' : ''}</p>
-                <a 
-                  href={`https://wa.me/5353972047?text=Hola%2C%20estoy%20interesado%2Fa%20en%20el%20producto%20${encodeURIComponent(producto.nombre)}.%20%C2%BFPodrian%20darme%20mas%20informacion%3F`}
-                  target="_blank"
-                  rel="noopener"
-                  class="btn btn-accent btn-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                  Consultar
-                </a>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p class="no-products">No hay productos disponibles en este momento.</p>
-      )}
-      
+      <p class="section-subtitle">
+        Descubra nuestra variedad de productos caprinos de alta calidad
+      </p>
+
+      {
+        productos.length > 0 ? (
+          <div class="grid grid-3">
+            {productos.map((producto: any) => (
+              <article class="card producto-card">
+                <img
+                  src={
+                    producto.imagen ||
+                    "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800&q=80"
+                  }
+                  alt={producto.nombre}
+                  class="card-image"
+                  loading="lazy"
+                />
+                <div class="card-content">
+                  <span class="badge badge-primary">
+                    {producto.categoria?.nombre || "Producto"}
+                  </span>
+                  <h3 class="card-title">{producto.nombre}</h3>
+                  <p class="card-text">
+                    {producto.descripcion?.slice(0, 100)}
+                    {producto.descripcion?.length > 100 ? "..." : ""}
+                  </p>
+                  <a
+                    href={`https://wa.me/${whatsappClean}?text=${encodeURIComponent(`Hola, estoy interesado/a en el producto ${producto.nombre}. ¿Podrían darme más información?`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-accent btn-sm"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    Consultar
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p class="no-products">
+            No hay productos disponibles en este momento.
+          </p>
+        )
+      }
+
       <div class="productos-cta">
         <a href="/productos" class="btn btn-primary">Ver todos los productos</a>
       </div>
@@ -113,35 +152,76 @@ const config = data.configuracion;
         <div class="turismo-info">
           <h2 class="section-title" style="text-align: left;">Turismo Rural</h2>
           <p>
-            Disfrute de una experiencia unica en nuestra finca. Conozca el proceso de elaboracion de nuestros 
-            productos lacteos, interactue con nuestras cabras y disfrute de un dia en el campo cubano.
+            Disfrute de una experiencia única en nuestra finca. Conozca el
+            proceso de elaboración de nuestros productos lácteos, interactúe con
+            nuestras cabras y disfrute de un día en el campo cubano.
           </p>
           <ul class="turismo-list">
             <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
               Recorrido por la finca
             </li>
             <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              Degustacion de productos
+              Degustación de productos
             </li>
             <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
               Ordeño de cabras
             </li>
             <li>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
               Almuerzo criollo
             </li>
@@ -149,8 +229,8 @@ const config = data.configuracion;
           <a href="/turismo" class="btn btn-primary">Reservar Visita</a>
         </div>
         <div class="turismo-image">
-          <img 
-            src="https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800&q=80" 
+          <img
+            src="https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800&q=80"
             alt="Turismo rural en La Habanera"
             loading="lazy"
           />
@@ -159,44 +239,95 @@ const config = data.configuracion;
     </div>
   </section>
 
-  <!-- Contacto Rapido -->
+  <!-- Contacto Rápido -->
   <section class="section contacto-section">
     <div class="container">
-      <h2 class="section-title">Contactenos</h2>
+      <h2 class="section-title">Contáctenos</h2>
       <p class="section-subtitle">Estamos para servirle</p>
-      
+
       <div class="contacto-grid">
-        <a href="tel:+5353972047" class="contacto-card">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        <a
+          href={`tel:${config?.telefono?.replace(/\s/g, "") || "+5353972047"}`}
+          class="contacto-card"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+            ></path>
           </svg>
           <span>Llamar</span>
-          <small>+53 5 3972047</small>
+          <small>{config?.telefono || "+53 5 3972047"}</small>
         </a>
-        
-        <a href="mailto:lahaban3ra@gmail.com" class="contacto-card">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <a
+          href={`mailto:${config?.email || "lahaban3ra@gmail.com"}`}
+          class="contacto-card"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <rect width="20" height="16" x="2" y="4" rx="2"></rect>
             <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
           </svg>
           <span>Email</span>
-          <small>lahaban3ra@gmail.com</small>
+          <small>{config?.email || "lahaban3ra@gmail.com"}</small>
         </a>
-        
-        <a href="https://wa.me/5353972047" target="_blank" rel="noopener" class="contacto-card">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+
+        <a
+          href={`https://wa.me/${whatsappClean}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="contacto-card"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+            ></path>
           </svg>
           <span>WhatsApp</span>
           <small>Enviar mensaje</small>
         </a>
-        
+
         <a href="/contacto" class="contacto-card">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-            <circle cx="12" cy="10" r="3"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
           </svg>
-          <span>Ubicacion</span>
+          <span>Ubicación</span>
           <small>Mayabeque, Cuba</small>
         </a>
       </div>
@@ -209,130 +340,130 @@ const config = data.configuracion;
   .historia {
     background-color: var(--color-leche);
   }
-  
+
   .historia-content {
     display: grid;
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   @media (min-width: 768px) {
     .historia-content {
       grid-template-columns: 1fr 1fr;
     }
   }
-  
+
   .historia-text p {
     margin-bottom: 1rem;
     color: var(--color-cafe);
   }
-  
+
   .historia-cards {
     display: grid;
     gap: 1rem;
   }
-  
+
   .mision-card,
   .vision-card {
     padding: 1.5rem;
     border-radius: 1rem;
   }
-  
+
   .mision-card {
     background-color: var(--color-mantequilla);
   }
-  
+
   .vision-card {
     background-color: var(--color-verde);
     color: white;
   }
-  
+
   .mision-card h3,
   .vision-card h3 {
     font-size: 1.1rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
   }
-  
+
   .mision-card h3 {
     color: var(--color-chocolate);
   }
-  
+
   .mision-card p {
     color: var(--color-cafe);
     font-size: 0.9rem;
   }
-  
+
   /* Productos */
   .productos-section {
     background-color: var(--color-crema);
   }
-  
+
   .producto-card {
     display: flex;
     flex-direction: column;
   }
-  
+
   .producto-card .card-content {
     display: flex;
     flex-direction: column;
     flex: 1;
   }
-  
+
   .producto-card .badge {
     width: fit-content;
     margin-bottom: 0.5rem;
   }
-  
+
   .producto-card .btn {
     margin-top: auto;
     width: 100%;
   }
-  
+
   .btn-sm {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
   }
-  
+
   .productos-cta {
     text-align: center;
     margin-top: 2rem;
   }
-  
+
   .no-products {
     text-align: center;
     color: var(--color-tierra);
     padding: 2rem;
   }
-  
+
   /* Turismo */
   .turismo-section {
     background-color: var(--color-queso);
   }
-  
+
   .turismo-content {
     display: grid;
     grid-template-columns: 1fr;
     gap: 2rem;
     align-items: center;
   }
-  
+
   @media (min-width: 1024px) {
     .turismo-content {
       grid-template-columns: 1fr 1fr;
     }
   }
-  
+
   .turismo-info p {
     color: var(--color-cafe);
     margin-bottom: 1.5rem;
   }
-  
+
   .turismo-list {
     list-style: none;
     margin-bottom: 1.5rem;
   }
-  
+
   .turismo-list li {
     display: flex;
     align-items: center;
@@ -340,35 +471,35 @@ const config = data.configuracion;
     padding: 0.5rem 0;
     color: var(--color-chocolate);
   }
-  
+
   .turismo-list svg {
     color: var(--color-verde);
   }
-  
+
   .turismo-image img {
     width: 100%;
     height: auto;
     border-radius: 1rem;
     box-shadow: 0 10px 30px rgba(61, 35, 20, 0.2);
   }
-  
+
   /* Contacto */
   .contacto-section {
     background-color: var(--color-crema);
   }
-  
+
   .contacto-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
-  
+
   @media (min-width: 768px) {
     .contacto-grid {
       grid-template-columns: repeat(4, 1fr);
     }
   }
-  
+
   .contacto-card {
     display: flex;
     flex-direction: column;
@@ -378,25 +509,27 @@ const config = data.configuracion;
     border-radius: 1rem;
     text-decoration: none;
     box-shadow: 0 2px 10px rgba(61, 35, 20, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
-  
+
   .contacto-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(61, 35, 20, 0.15);
   }
-  
+
   .contacto-card svg {
     color: var(--color-mantequilla);
     margin-bottom: 0.75rem;
   }
-  
+
   .contacto-card span {
     font-weight: 600;
     color: var(--color-chocolate);
     margin-bottom: 0.25rem;
   }
-  
+
   .contacto-card small {
     font-size: 0.8rem;
     color: var(--color-tierra);

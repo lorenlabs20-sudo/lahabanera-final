@@ -2,6 +2,16 @@
 // La URL del CMS se obtiene de variables de entorno
 
 export const CMS_URL = import.meta.env.CMS_URL || 'http://localhost:3000';
+export interface HeroSlide {
+  id: string
+  tipo: 'imagen' | 'video'
+  url: string
+  titulo: string | null
+  subtitulo: string | null
+  duracion: number
+  orden: number
+  activo: boolean
+}
 
 // Función para obtener datos del CMS
 export async function fetchCmsData() {
@@ -19,6 +29,7 @@ export async function fetchCmsData() {
       productos: [],
       categorias: [],
       galeria: [],
+      heroSlides: [],
       configuracion: {
         telefono: '+53 5 3972047',
         email: 'lahaban3ra@gmail.com',

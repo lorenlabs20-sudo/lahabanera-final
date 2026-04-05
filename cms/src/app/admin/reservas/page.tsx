@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ColumnDef } from "@tanstack/react-table"
-import { Eye, Check, X, Calendar, Users, Mail, Phone } from "lucide-react"
+import { Eye, Check, X, Calendar, Users, Mail, Phone, Trash2 } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,15 +45,24 @@ export default function ReservasPage() {
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [estadoFilter, setEstadoFilter] = useState<string>("todas")
   const [loading, setLoading] = useState(true)
-  const [confirmDialog, setConfirmDialog] = useState<{ 
-    open: boolean; 
-    reserva: Reserva | null; 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    reserva: Reserva | null;
     action: "confirmar" | "cancelar" | null;
     isLoading?: boolean;
   }>({
     open: false,
     reserva: null,
     action: null,
+    isLoading: false,
+  })
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean
+    reserva: Reserva | null
+    isLoading?: boolean
+  }>({
+    open: false,
+    reserva: null,
     isLoading: false,
   })
 
@@ -76,13 +85,11 @@ export default function ReservasPage() {
   }
 
   const handleUpdateEstado = async () => {
-    // Guardar referencia de la reserva y acción antes de limpiar el estado
     const currentReserva = confirmDialog.reserva
     const currentAction = confirmDialog.action
-    
+
     if (!currentReserva || !currentAction) return
 
-    // Mostrar loading
     setConfirmDialog(prev => ({ ...prev, isLoading: true }))
 
     const nuevoEstado = currentAction === "confirmar" ? "confirmada" : "cancelada"
@@ -94,15 +101,11 @@ export default function ReservasPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: nuevoEstado }),
       })
-      
+
       if (res.ok) {
-        // Primero actualizar la lista de reservas
         await fetchReservas()
-        
-        // Luego cerrar el modal
         setConfirmDialog({ open: false, reserva: null, action: null, isLoading: false })
-        
-        // Mostrar toast según la acción
+
         if (currentAction === "confirmar") {
           toast({
             title: "Reserva confirmada",
@@ -126,6 +129,44 @@ export default function ReservasPage() {
     } catch (error) {
       console.error("Error updating reserva:", error)
       setConfirmDialog(prev => ({ ...prev, isLoading: false }))
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteDialog.reserva) return
+
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }))
+    const reservaNombre = deleteDialog.reserva.nombre
+
+    try {
+      const res = await fetch(`/api/reservas/${deleteDialog.reserva.id}`, {
+        method: "DELETE",
+      })
+
+      if (res.ok) {
+        await fetchReservas()
+        setDeleteDialog({ open: false, reserva: null, isLoading: false })
+        toast({
+          title: "Reserva eliminada",
+          description: `La reserva de ${reservaNombre} ha sido eliminada correctamente.`,
+        })
+      } else {
+        const error = await res.json()
+        setDeleteDialog(prev => ({ ...prev, isLoading: false }))
+        toast({
+          title: "Error",
+          description: error.error || "No se pudo eliminar la reserva.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting reserva:", error)
+      setDeleteDialog(prev => ({ ...prev, isLoading: false }))
       toast({
         title: "Error de conexión",
         description: "No se pudo conectar con el servidor.",
@@ -270,6 +311,15 @@ export default function ReservasPage() {
                 <X className="w-4 h-4" />
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDeleteDialog({ open: true, reserva, isLoading: false })}
+              title="Eliminar"
+              className="text-gray-500 hover:text-red-600 h-8 w-8 sm:h-9 sm:w-9"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         )
       },
@@ -389,7 +439,7 @@ export default function ReservasPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={confirmDialog.isLoading}
               className="w-full sm:w-auto"
             >
@@ -398,11 +448,10 @@ export default function ReservasPage() {
             <AlertDialogAction
               onClick={handleUpdateEstado}
               disabled={confirmDialog.isLoading}
-              className={`w-full sm:w-auto ${
-                confirmDialog.action === "confirmar"
+              className={`w-full sm:w-auto ${confirmDialog.action === "confirmar"
                   ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              }`}
+                  : "bg-red-600 text-white hover:bg-red-700"
+                }`}
             >
               {confirmDialog.isLoading ? (
                 <>
@@ -410,7 +459,51 @@ export default function ReservasPage() {
                   Procesando...
                 </>
               ) : (
-                confirmDialog.action === "confirmar" ? "Confirmar" : "Confirmar"
+                confirmDialog.action === "confirmar" ? "Confirmar" : "Cancelar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !deleteDialog.isLoading) {
+            setDeleteDialog({ open: false, reserva: null, isLoading: false })
+          }
+        }}
+      >
+        <AlertDialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg sm:text-xl">Eliminar Reserva</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              ¿Está seguro que desea eliminar la reserva de{" "}
+              <span className="font-semibold">"{deleteDialog.reserva?.nombre}"</span>?
+              <br />
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel
+              disabled={deleteDialog.isLoading}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteDialog.isLoading}
+              className="w-full sm:w-auto bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleteDialog.isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

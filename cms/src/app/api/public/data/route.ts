@@ -12,7 +12,7 @@ import { db } from '@/lib/db'
 export async function GET() {
   try {
     // Ejecutar todas las consultas en paralelo para mejor rendimiento
-    const [productos, categorias, galeria, configuracion] = await Promise.all([
+    const [productos, categorias, galeria, configuracion, heroSlides] = await Promise.all([
       // Productos activos con su categoría
       db.producto.findMany({
         where: { activo: true },
@@ -51,6 +51,22 @@ export async function GET() {
 
       // Configuración del sitio
       db.configuracion.findFirst(),
+
+      // ✅ HERO SLIDES - Slides activos del carrusel ordenados
+      db.heroSlide.findMany({
+        where: { activo: true },
+        orderBy: { orden: 'asc' },
+        select: {
+          id: true,
+          tipo: true,
+          url: true,
+          titulo: true,
+          subtitulo: true,
+          duracion: true,
+          orden: true,
+          activo: true,
+        },
+      }),
     ])
 
     // Transformar categorías para incluir el conteo directamente
@@ -65,12 +81,13 @@ export async function GET() {
     return NextResponse.json({
       // Metadatos
       generatedAt: new Date().toISOString(),
-      version: '1.0',
+      version: '1.1', // ← Actualizar versión
 
       // Datos principales
       productos,
       categorias: categoriasConConteo,
       galeria,
+      heroSlides, // ✅ Agregar slides del carrusel
 
       // Configuración del sitio
       configuracion: configuracion || {

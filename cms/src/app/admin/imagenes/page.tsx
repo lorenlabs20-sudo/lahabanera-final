@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Image as ImageIcon, Trash2, Plus, Check, X, Loader2, AlertCircle } from "lucide-react"
+import { Image as ImageIcon, Trash2, Plus, Check, X, Loader2, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,10 +34,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { ImageUploader } from "@/components/ui/ImageUploader"
 
 interface Imagen {
   id: string
   url: string
+  publicId?: string
   nombre: string
   alt: string | null
   tipo: string
@@ -56,19 +58,19 @@ export default function ImagenesPage() {
     isLoading: false,
   })
   const [addDialog, setAddDialog] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [urlError, setUrlError] = useState("")
-  const [nombreError, setNombreError] = useState("")
-  const [imageLoading, setImageLoading] = useState(false)
-  const [imageValid, setImageValid] = useState<boolean | null>(null)
 
   const [formData, setFormData] = useState({
     url: "",
+    publicId: "",
     nombre: "",
     alt: "",
     tipo: "general",
     enGaleria: false,
   })
+
+  // Estado para saber si estamos editando o creando nueva
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchImagenes()
@@ -88,102 +90,121 @@ export default function ImagenesPage() {
     }
   }
 
-  const validateUrl = (url: string): boolean => {
-    if (!url.trim()) {
-      setUrlError("La URL es requerida")
-      return false
-    }
+  const handleUploadSuccess = (url: string, publicId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      url: url,
+      publicId: publicId,
+    }))
 
-    // Validar formato de URL
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i
-    if (!urlPattern.test(url)) {
-      setUrlError("Ingrese una URL válida (ej: https://ejemplo.com/imagen.jpg)")
-      return false
-    }
-
-    setUrlError("")
-    return true
-  }
-
-  const validateNombre = (nombre: string): boolean => {
-    if (!nombre.trim()) {
-      setNombreError("El nombre es requerido")
-      return false
-    }
-    if (nombre.length < 3) {
-      setNombreError("El nombre debe tener al menos 3 caracteres")
-      return false
-    }
-    if (nombre.length > 100) {
-      setNombreError("El nombre no puede exceder los 100 caracteres")
-      return false
-    }
-    setNombreError("")
-    return true
-  }
-
-  const validateImageUrl = async (url: string): Promise<boolean> => {
-    if (!url) return false
-
-    setImageLoading(true)
-    setImageValid(null)
-
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.onload = () => {
-        setImageValid(true)
-        setImageLoading(false)
-        resolve(true)
-      }
-      img.onerror = () => {
-        setImageValid(false)
-        setImageLoading(false)
-        resolve(false)
-      }
-      img.src = url
+    toast({
+      title: "✓ Imagen subida",
+      description: "La imagen se ha subido correctamente. Ahora completa sus datos.",
+      duration: 3000,
     })
   }
 
-  const handleUrlChange = async (url: string) => {
-    setFormData({ ...formData, url })
-    validateUrl(url)
-    if (validateUrl(url)) {
-      await validateImageUrl(url)
-    } else {
-      setImageValid(null)
-    }
+  const handleUploadError = (error: string) => {
+    toast({
+      title: "Error al subir",
+      description: error,
+      variant: "destructive",
+    })
   }
 
-  const handleNombreChange = (nombre: string) => {
-    setFormData({ ...formData, nombre })
-    validateNombre(nombre)
-  }
-
-  const handleToggleGaleria = async (imagen: Imagen) => {
-    try {
-      const res = await fetch(`/api/imagenes/${imagen.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enGaleria: !imagen.enGaleria }),
+  const handleAddImagen = async () => {
+    if (!formData.url || !formData.nombre) {
+      toast({
+        title: "Error",
+        description: "Debe subir una imagen y completar el nombre",
+        variant: "destructive",
       })
+      return
+    }
+
+    try {
+      const res = await fetch("/api/imagenes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: formData.url,
+          publicId: formData.publicId,
+          nombre: formData.nombre,
+          alt: formData.alt,
+          tipo: formData.tipo,
+          enGaleria: formData.enGaleria,
+        }),
+      })
+
       if (res.ok) {
         await fetchImagenes()
+        setAddDialog(false)
+        resetForm()
+
         toast({
-          title: imagen.enGaleria ? "Imagen quitada de galería" : "Imagen agregada a galería",
-          description: `"${imagen.nombre}" ${imagen.enGaleria ? "ya no aparece" : "ahora aparece"} en la galería pública.`,
+          title: "Imagen agregada",
+          description: `"${formData.nombre}" ha sido agregada exitosamente`,
         })
       } else {
         toast({
           title: "Error",
-          description: "No se pudo actualizar el estado de la imagen.",
+          description: "No se pudo agregar la imagen",
           variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("Error updating imagen:", error)
+      console.error("Error adding imagen:", error)
       toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor.",
+        title: "Error",
+        description: "Error de conexión",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditImagen = async () => {
+    if (!formData.url || !formData.nombre) {
+      toast({
+        title: "Error",
+        description: "Complete todos los campos requeridos",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/imagenes/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          alt: formData.alt,
+          tipo: formData.tipo,
+          enGaleria: formData.enGaleria,
+        }),
+      })
+
+      if (res.ok) {
+        await fetchImagenes()
+        setAddDialog(false)
+        resetForm()
+
+        toast({
+          title: "Imagen actualizada",
+          description: `"${formData.nombre}" ha sido actualizada exitosamente`,
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar la imagen",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error editing imagen:", error)
+      toast({
+        title: "Error",
+        description: "Error de conexión",
         variant: "destructive",
       })
     }
@@ -193,24 +214,25 @@ export default function ImagenesPage() {
     if (!deleteDialog.imagen) return
 
     setDeleteDialog(prev => ({ ...prev, isLoading: true }))
-    const imagenNombre = deleteDialog.imagen.nombre
 
     try {
       const res = await fetch(`/api/imagenes/${deleteDialog.imagen.id}`, {
         method: "DELETE",
+        body: JSON.stringify({ publicId: deleteDialog.imagen.publicId }),
       })
+
       if (res.ok) {
         await fetchImagenes()
         setDeleteDialog({ open: false, imagen: null, isLoading: false })
         toast({
           title: "Imagen eliminada",
-          description: `"${imagenNombre}" ha sido eliminada correctamente.`,
+          description: "La imagen ha sido eliminada correctamente",
         })
       } else {
         setDeleteDialog(prev => ({ ...prev, isLoading: false }))
         toast({
           title: "Error",
-          description: "No se pudo eliminar la imagen.",
+          description: "No se pudo eliminar la imagen",
           variant: "destructive",
         })
       }
@@ -218,112 +240,64 @@ export default function ImagenesPage() {
       console.error("Error deleting imagen:", error)
       setDeleteDialog(prev => ({ ...prev, isLoading: false }))
       toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor.",
+        title: "Error",
+        description: "Error de conexión",
         variant: "destructive",
       })
     }
   }
 
-  const handleAddImagen = async () => {
-    // Validaciones
-    const isUrlValid = validateUrl(formData.url)
-    const isNombreValid = validateNombre(formData.nombre)
-
-    if (!isUrlValid || !isNombreValid) {
-      toast({
-        title: "Error de validación",
-        description: "Por favor corrija los errores en el formulario.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Validar que la imagen cargue correctamente
-    const isValidImage = await validateImageUrl(formData.url)
-    if (!isValidImage) {
-      toast({
-        title: "URL inválida",
-        description: "La URL proporcionada no es una imagen válida o no se puede cargar.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const res = await fetch("/api/imagenes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      if (res.ok) {
-        await fetchImagenes()
-        setAddDialog(false)
-        setFormData({
-          url: "",
-          nombre: "",
-          alt: "",
-          tipo: "general",
-          enGaleria: false,
-        })
-        setUrlError("")
-        setNombreError("")
-        setImageValid(null)
-        toast({
-          title: "Imagen agregada",
-          description: `"${formData.nombre}" ha sido agregada exitosamente.`,
-        })
-      } else {
-        const error = await res.json()
-        toast({
-          title: "Error",
-          description: error.error || "No se pudo agregar la imagen.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error adding imagen:", error)
-      toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor.",
-        variant: "destructive",
-      })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleResetDialog = () => {
-    setAddDialog(false)
+  const resetForm = () => {
     setFormData({
       url: "",
+      publicId: "",
       nombre: "",
       alt: "",
       tipo: "general",
       enGaleria: false,
     })
-    setUrlError("")
-    setNombreError("")
-    setImageValid(null)
+    setIsEditing(false)
+    setEditingId(null)
+  }
+
+  const handleResetDialog = () => {
+    setAddDialog(false)
+    resetForm()
+  }
+  const handleImageRemove = () => {
+    // Limpiar los datos de la imagen en el formulario
+    setFormData(prev => ({
+      ...prev,
+      url: "",
+      publicId: "",
+    }))
+
+    // Mostrar toast indicando que se quitó la imagen
+    toast({
+      title: "Imagen removida",
+      description: "La imagen ha sido removida. Puedes subir una nueva.",
+      duration: 3000,
+    })
+  }
+
+  const openEditDialog = (imagen: Imagen) => {
+    setFormData({
+      url: imagen.url,
+      publicId: imagen.publicId || "",
+      nombre: imagen.nombre,
+      alt: imagen.alt || "",
+      tipo: imagen.tipo,
+      enGaleria: imagen.enGaleria,
+    })
+    setIsEditing(true)
+    setEditingId(imagen.id)
+    setAddDialog(true)
   }
 
   const filteredImagenes = imagenes.filter((img) => {
     if (tipoFilter === "todas") return true
     return img.tipo === tipoFilter
   })
-
-  const getTipoBadgeVariant = (tipo: string) => {
-    switch (tipo) {
-      case "producto":
-        return "default"
-      case "galeria":
-        return "secondary"
-      default:
-        return "outline"
-    }
-  }
 
   const getTipoBadgeStyle = (tipo: string) => {
     switch (tipo) {
@@ -332,7 +306,7 @@ export default function ImagenesPage() {
       case "galeria":
         return { backgroundColor: "#6B8E5A", color: "white" }
       default:
-        return {}
+        return { backgroundColor: "#E8E4D9", color: "#3D2314" }
     }
   }
 
@@ -348,11 +322,14 @@ export default function ImagenesPage() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#3D2314]">Imagenes</h1>
+          <h1 className="text-2xl font-bold text-[#3D2314]">Imágenes</h1>
           <p className="text-muted-foreground">Gestión de la galería multimedia</p>
         </div>
         <Button
-          onClick={() => setAddDialog(true)}
+          onClick={() => {
+            resetForm()
+            setAddDialog(true)
+          }}
           style={{ backgroundColor: "#3D2314" }}
           className="text-white hover:opacity-90"
         >
@@ -393,10 +370,6 @@ export default function ImagenesPage() {
                       src={imagen.url}
                       alt={imagen.alt || imagen.nombre}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder-image.png"
-                        e.currentTarget.onerror = null
-                      }}
                     />
                     {imagen.enGaleria && (
                       <div className="absolute top-2 right-2">
@@ -410,31 +383,27 @@ export default function ImagenesPage() {
                     <div className="space-y-2">
                       <h3 className="font-medium text-[#3D2314] truncate">{imagen.nombre}</h3>
                       <div className="flex items-center justify-between">
-                        <Badge variant={getTipoBadgeVariant(imagen.tipo)} style={getTipoBadgeStyle(imagen.tipo)}>
+                        <Badge style={getTipoBadgeStyle(imagen.tipo)}>
                           {imagen.tipo === "producto" ? "Producto" : imagen.tipo === "galeria" ? "Galería" : "General"}
                         </Badge>
-                        <div className="flex items-center gap-1">
+                        <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleToggleGaleria(imagen)}
-                            title={imagen.enGaleria ? "Quitar de galería" : "Agregar a galería"}
-                            className="h-8 w-8"
+                            onClick={() => openEditDialog(imagen)}
+                            title="Editar"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-700"
                           >
-                            {imagen.enGaleria ? (
-                              <Check className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <X className="w-4 h-4 text-muted-foreground" />
-                            )}
+                            <Eye className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeleteDialog({ open: true, imagen, isLoading: false })}
                             title="Eliminar"
-                            className="h-8 w-8"
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
@@ -447,139 +416,104 @@ export default function ImagenesPage() {
         </CardContent>
       </Card>
 
-{/* Add Image Dialog */}
-<Dialog open={addDialog} onOpenChange={(open) => !open && handleResetDialog()}>
-  <DialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
-    <DialogHeader>
-      <DialogTitle className="text-lg sm:text-xl">Nueva Imagen</DialogTitle>
-      <DialogDescription className="text-sm">
-        Agrega una nueva imagen proporcionando la URL
-      </DialogDescription>
-    </DialogHeader>
-    <div className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label htmlFor="url" className="text-[#3D2314]">
-          URL de la imagen{' '}
-          <span className={`${(!formData.url || urlError) ? 'text-red-500' : 'text-[#3D2314]'} transition-colors`}>
-            *
-          </span>
-        </Label>
-        <div className="relative">
-          <Input
-            id="url"
-            placeholder="https://ejemplo.com/imagen.jpg"
-            value={formData.url}
-            onChange={(e) => handleUrlChange(e.target.value)}
-            className={`w-full ${urlError ? "border-red-500" : ""} ${
-              imageValid === true && !urlError && formData.url ? "border-green-500" : ""
-            } pr-10`}
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            {imageLoading && (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            )}
-            {imageValid === true && !imageLoading && formData.url && (
-              <Check className="w-4 h-4 text-green-500" />
-            )}
-            {imageValid === false && !imageLoading && formData.url && (
-              <AlertCircle className="w-4 h-4 text-red-500" />
+      {/* Add/Edit Image Dialog - MODIFICADO PARA MANTENER LA IMAGEN */}
+      <Dialog open={addDialog} onOpenChange={(open) => !open && handleResetDialog()}>
+        <DialogContent className="w-[95%] sm:w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">
+              {isEditing ? "Editar Imagen" : "Nueva Imagen"}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {isEditing
+                ? "Edita los datos de la imagen seleccionada"
+                : "Sube una imagen desde tu computadora y completa sus datos"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <ImageUploader
+              onUploadSuccess={handleUploadSuccess}
+              onUploadError={handleUploadError}
+              onImageRemove={handleImageRemove}
+              tipo={formData.tipo}
+              initialImage={formData.url ? { url: formData.url, publicId: formData.publicId } : undefined}
+              isEditing={isEditing}
+            />
+
+            {/* Siempre mostrar los campos de datos */}
+            <div className="space-y-2">
+              <Label htmlFor="nombre" className="text-[#3D2314]">
+                Nombre <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="nombre"
+                placeholder="Nombre descriptivo"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="alt" className="text-[#3D2314]">Texto alternativo</Label>
+              <Input
+                id="alt"
+                placeholder="Descripción de la imagen (accesibilidad)"
+                value={formData.alt}
+                onChange={(e) => setFormData({ ...formData, alt: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tipo" className="text-[#3D2314]">Tipo</Label>
+              <Select
+                value={formData.tipo}
+                onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="producto">Producto</SelectItem>
+                  <SelectItem value="galeria">Galería</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="enGaleria"
+                checked={formData.enGaleria}
+                onCheckedChange={(checked) => setFormData({ ...formData, enGaleria: checked as boolean })}
+              />
+              <Label htmlFor="enGaleria" className="cursor-pointer text-sm">
+                Mostrar en galería pública
+              </Label>
+            </div>
+
+            {/* Mensaje de ayuda para edición */}
+            {isEditing && (
+              <p className="text-xs text-muted-foreground text-center">
+                Nota: Para cambiar la imagen, haz clic en ✕ y sube una nueva
+              </p>
             )}
           </div>
-        </div>
-        {urlError && <p className="text-xs text-red-500">{urlError}</p>}
-        {imageValid === true && !urlError && formData.url && (
-          <p className="text-xs text-green-500">✓ Imagen válida</p>
-        )}
-        {imageValid === false && !urlError && formData.url && (
-          <p className="text-xs text-red-500">✗ La imagen no se pudo cargar</p>
-        )}
-      </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleResetDialog} className="w-full sm:w-auto">
+              Cancelar
+            </Button>
+            <Button
+              onClick={isEditing ? handleEditImagen : handleAddImagen}
+              disabled={!formData.url || !formData.nombre}
+              style={{ backgroundColor: "#3D2314" }}
+              className="w-full sm:w-auto text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {isEditing ? "Actualizar Imagen" : "Guardar Imagen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <div className="space-y-2">
-        <Label htmlFor="nombre" className="text-[#3D2314]">
-          Nombre{' '}
-          <span className={`${(!formData.nombre || nombreError) ? 'text-red-500' : 'text-[#3D2314]'} transition-colors`}>
-            *
-          </span>
-        </Label>
-        <Input
-          id="nombre"
-          placeholder="Nombre descriptivo"
-          value={formData.nombre}
-          onChange={(e) => handleNombreChange(e.target.value)}
-          className={`w-full ${nombreError ? "border-red-500" : ""} ${
-            !nombreError && formData.nombre ? "border-green-500" : ""
-          }`}
-        />
-        {nombreError && <p className="text-xs text-red-500">{nombreError}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="alt" className="text-[#3D2314]">Texto alternativo</Label>
-        <Input
-          id="alt"
-          placeholder="Descripción de la imagen (accesibilidad)"
-          value={formData.alt}
-          onChange={(e) => setFormData({ ...formData, alt: e.target.value })}
-          className="w-full"
-        />
-        <p className="text-xs text-muted-foreground">
-          Importante para accesibilidad y SEO
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="tipo" className="text-[#3D2314]">Tipo</Label>
-        <Select
-          value={formData.tipo}
-          onValueChange={(value) => setFormData({ ...formData, tipo: value })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Seleccionar tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="general">General</SelectItem>
-            <SelectItem value="producto">Producto</SelectItem>
-            <SelectItem value="galeria">Galería</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="enGaleria"
-          checked={formData.enGaleria}
-          onCheckedChange={(checked) => setFormData({ ...formData, enGaleria: checked as boolean })}
-        />
-        <Label htmlFor="enGaleria" className="cursor-pointer text-sm">
-          Mostrar en galería pública
-        </Label>
-      </div>
-    </div>
-    <DialogFooter className="flex-col sm:flex-row gap-2">
-      <Button variant="outline" onClick={handleResetDialog} className="w-full sm:w-auto">
-        Cancelar
-      </Button>
-      <Button
-        onClick={handleAddImagen}
-        disabled={!formData.url || !formData.nombre || submitting || imageValid === false}
-        style={{ backgroundColor: "#3D2314" }}
-        className="w-full sm:w-auto text-white hover:opacity-90 disabled:opacity-50"
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Guardando...
-          </>
-        ) : (
-          "Guardar"
-        )}
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <AlertDialog
         open={deleteDialog.open}
         onOpenChange={(open) => {
@@ -590,24 +524,18 @@ export default function ImagenesPage() {
       >
         <AlertDialogContent className="w-[95%] sm:w-full max-w-md mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg sm:text-xl">Eliminar Imagen</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm break-words">
-              ¿Está seguro que desea eliminar la imagen <span className="font-semibold">"{deleteDialog.imagen?.nombre}"</span>?
+            <AlertDialogTitle>Eliminar Imagen</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro que desea eliminar la imagen "{deleteDialog.imagen?.nombre}"?
               <br />
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel
-              disabled={deleteDialog.isLoading}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </AlertDialogCancel>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deleteDialog.isLoading}
-              className="w-full sm:w-auto bg-destructive text-white hover:bg-destructive/90"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleteDialog.isLoading ? (
                 <>

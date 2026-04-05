@@ -116,13 +116,38 @@ model Mensaje {
 // ===========================================
 
 model Configuracion {
-  id        String @id @default(cuid())
-  telefono  String
-  email     String
-  whatsapp  String
-  instagram String?
-  facebook  String?
-  direccion String
+  id              String      @id @default(cuid())
+  telefono        String
+  email           String
+  whatsapp        String
+  instagram       String?
+  facebook        String?
+  direccion       String
+  heroSlides      Json?       // ← Almacenará el array de slides (alternativa simple)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  slides          HeroSlide[] // ← Relación con los slides individuales
 
   @@map("configuracion")
+}
+
+// ===========================================
+// HERO SLIDE - Slides del carrusel principal
+// ===========================================
+
+model HeroSlide {
+  id              String   @id @default(cuid())
+  tipo            String   // 'imagen' o 'video'
+  url             String   // URL del recurso
+  titulo          String?  // Título específico para este slide
+  subtitulo       String?  // Subtítulo específico
+  duracion        Int      @default(5) // Segundos
+  orden           Int      // Orden de visualización
+  activo          Boolean  @default(true)
+  configuracionId String?
+  configuracion   Configuracion? @relation(fields: [configuracionId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("hero_slides")
 }

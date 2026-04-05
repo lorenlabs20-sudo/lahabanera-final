@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { ArrowLeft, Save, Loader2, Trash2, Image as ImageIcon, AlertCircle, Check } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ImageUploader } from "@/components/ui/ImageUploader"
 
 interface Categoria {
   id: string
@@ -40,6 +41,7 @@ interface Producto {
   nombre: string
   descripcion: string | null
   imagen: string | null
+  publicId: string | null
   activo: boolean
   categoriaId: string
 }
@@ -54,8 +56,6 @@ export default function EditarProductoPage() {
   const [saving, setSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
-  const [imageLoading, setImageLoading] = useState(false)
-  const [imageValid, setImageValid] = useState<boolean | null>(null)
   const [errors, setErrors] = useState<{
     nombre?: string
     categoriaId?: string
@@ -65,6 +65,7 @@ export default function EditarProductoPage() {
     nombre: "",
     descripcion: "",
     imagen: "",
+    publicId: "",
     categoriaId: "",
     activo: true,
   })
@@ -72,6 +73,7 @@ export default function EditarProductoPage() {
     nombre: "",
     categoriaId: "",
     imagen: "",
+    publicId: "",
     descripcion: "",
     activo: true,
   })
@@ -108,6 +110,7 @@ export default function EditarProductoPage() {
           nombre: producto.nombre,
           descripcion: producto.descripcion || "",
           imagen: producto.imagen || "",
+          publicId: producto.publicId || "",
           categoriaId: producto.categoriaId,
           activo: producto.activo,
         })
@@ -115,14 +118,10 @@ export default function EditarProductoPage() {
           nombre: producto.nombre,
           categoriaId: producto.categoriaId,
           imagen: producto.imagen || "",
+          publicId: producto.publicId || "",
           descripcion: producto.descripcion || "",
           activo: producto.activo,
         })
-
-        // Validar la imagen existente si tiene URL
-        if (producto.imagen) {
-          await validateImageUrl(producto.imagen)
-        }
       } else {
         toast({
           title: "Error",
@@ -143,29 +142,48 @@ export default function EditarProductoPage() {
     }
   }
 
-  const validateImageUrl = async (url: string): Promise<boolean> => {
-    if (!url.trim()) return true // Si no hay URL, es válido (opcional)
+  const handleUploadSuccess = (url: string, publicId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      imagen: url,
+      publicId: publicId,
+    }))
 
-    setImageLoading(true)
-    setImageValid(null)
+    if (errors.imagen) {
+      setErrors({ ...errors, imagen: undefined })
+    }
 
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.onload = () => {
-        setImageValid(true)
-        setImageLoading(false)
-        resolve(true)
-      }
-      img.onerror = () => {
-        setImageValid(false)
-        setImageLoading(false)
-        resolve(false)
-      }
-      img.src = url
+    toast({
+      title: "✓ Imagen subida",
+      description: "La imagen se ha actualizado correctamente",
+      duration: 3000,
     })
   }
 
-  const validateForm = async () => {
+  const handleUploadError = (error: string) => {
+    toast({
+      title: "Error al subir",
+      description: error,
+      variant: "destructive",
+    })
+    setErrors({ ...errors, imagen: error })
+  }
+
+  const handleImageRemove = () => {
+    setFormData(prev => ({
+      ...prev,
+      imagen: "",
+      publicId: "",
+    }))
+
+    toast({
+      title: "Imagen removida",
+      description: "La imagen ha sido removida. Puedes subir una nueva.",
+      duration: 3000,
+    })
+  }
+
+  const validateForm = () => {
     const newErrors: { nombre?: string; categoriaId?: string; imagen?: string } = {}
 
     if (!formData.nombre.trim()) {
@@ -180,21 +198,6 @@ export default function EditarProductoPage() {
       newErrors.categoriaId = "Debe seleccionar una categoría"
     }
 
-    // Validar URL de imagen si se proporciona
-    if (formData.imagen.trim()) {
-      // Primero validar formato básico
-      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
-      if (!urlPattern.test(formData.imagen.trim())) {
-        newErrors.imagen = "Ingrese una URL válida"
-      } else {
-        // Luego validar que la imagen realmente exista y se pueda cargar
-        const isValidImage = await validateImageUrl(formData.imagen.trim())
-        if (!isValidImage) {
-          newErrors.imagen = "La URL no es una imagen válida o no se puede cargar"
-        }
-      }
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -202,7 +205,7 @@ export default function EditarProductoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const isValid = await validateForm()
+    const isValid = validateForm()
     if (!isValid) {
       toast({
         title: "Error de validación",
@@ -221,6 +224,7 @@ export default function EditarProductoPage() {
           nombre: formData.nombre.trim(),
           descripcion: formData.descripcion.trim() || null,
           imagen: formData.imagen.trim() || null,
+          publicId: formData.publicId || null,
           categoriaId: formData.categoriaId,
           activo: formData.activo,
         }),
@@ -300,30 +304,6 @@ export default function EditarProductoPage() {
     setFormData({ ...formData, categoriaId: value })
     if (errors.categoriaId) {
       setErrors({ ...errors, categoriaId: undefined })
-    }
-  }
-
-  const handleImagenChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setFormData({ ...formData, imagen: value })
-
-    // Limpiar error anterior si existe
-    if (errors.imagen && value.trim()) {
-      setErrors({ ...errors, imagen: undefined })
-    }
-
-    // Validar la imagen si tiene contenido
-    if (value.trim()) {
-      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
-      if (urlPattern.test(value.trim())) {
-        await validateImageUrl(value.trim())
-      } else {
-        setImageValid(null)
-        setImageLoading(false)
-      }
-    } else {
-      setImageValid(null)
-      setImageLoading(false)
     }
   }
 
@@ -467,64 +447,19 @@ export default function EditarProductoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="imagen" className="text-sm font-medium">
-                URL de la Imagen
+              <Label className="text-sm font-medium">
+                Imagen del Producto
               </Label>
-              <div className="relative">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      id="imagen"
-                      value={formData.imagen}
-                      onChange={handleImagenChange}
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      className={cn(
-                        "w-full pr-10",
-                        errors.imagen && "border-destructive focus-visible:ring-destructive",
-                        imageValid === true && !errors.imagen && formData.imagen && "border-green-500"
-                      )}
-                      aria-invalid={!!errors.imagen}
-                      aria-describedby={errors.imagen ? "imagen-error" : undefined}
-                      disabled={saving}
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      {imageLoading && (
-                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                      )}
-                      {imageValid === true && !imageLoading && formData.imagen && (
-                        <Check className="w-4 h-4 text-green-500" />
-                      )}
-                      {imageValid === false && !imageLoading && formData.imagen && (
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                      )}
-                    </div>
-                  </div>
-                  {formData.imagen && !errors.imagen && imageValid === true && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => window.open(formData.imagen, '_blank')}
-                      disabled={saving}
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {errors.imagen && (
-                <p id="imagen-error" className="text-sm text-destructive">
-                  {errors.imagen}
-                </p>
-              )}
-              {imageValid === true && !errors.imagen && formData.imagen && (
-                <p className="text-xs text-green-500"> Imagen válida</p>
-              )}
-              {imageValid === false && !errors.imagen && formData.imagen && (
-                <p className="text-xs text-red-500"> La imagen no se pudo cargar</p>
-              )}
+              <ImageUploader
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
+                onImageRemove={handleImageRemove}
+                tipo="producto"
+                initialImage={formData.imagen ? { url: formData.imagen, publicId: formData.publicId } : undefined}
+                isEditing={true}
+              />
               <p className="text-xs text-muted-foreground">
-                Ingrese una URL válida de imagen (opcional). La imagen se verificará automáticamente.
+                Sube una imagen para el producto (opcional). Haz clic en ✕ para cambiar la imagen.
               </p>
             </div>
 

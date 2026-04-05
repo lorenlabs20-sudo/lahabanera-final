@@ -7,6 +7,11 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// Solo las credenciales del admin vienen de variables de entorno
+// El resto sigue igual como estaba
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@lahabanera.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Habanera2025!';
+
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...\n');
 
@@ -27,11 +32,11 @@ async function main() {
   // 2. CREAR USUARIO ADMIN
   // ===========================================
   console.log('👤 Creando usuario administrador...');
-  const hashedPassword = await bcrypt.hash('Habanera2025!', 12);
+  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
   
   const admin = await prisma.usuario.create({
     data: {
-      email: 'admin@lahabanera.com',
+      email: ADMIN_EMAIL,
       password: hashedPassword,
       nombre: 'Administrador',
       rol: 'admin',
@@ -310,7 +315,7 @@ async function main() {
   console.log('✅ SEED COMPLETADO EXITOSAMENTE');
   console.log('═════════════════════════════════════════════════');
   console.log('\n📊 Resumen de datos creados:');
-  console.log(`   • Usuarios: 1 (admin@lahabanera.com)`);
+  console.log(`   • Usuarios: 1 (${ADMIN_EMAIL})`);
   console.log(`   • Categorias: ${categorias.length}`);
   console.log(`   • Productos: ${productos.length}`);
   console.log(`   • Imagenes: ${imagenes.length}`);
@@ -318,8 +323,8 @@ async function main() {
   console.log(`   • Mensajes: ${mensajes.length}`);
   console.log(`   • Configuracion: 1`);
   console.log('\n🔑 Credenciales de administrador:');
-  console.log('   Email: admin@lahabanera.com');
-  console.log('   Password: Habanera2025!');
+  console.log(`   Email: ${ADMIN_EMAIL}`);
+  console.log(`   Password: ${ADMIN_PASSWORD}`);
   console.log('═════════════════════════════════════════════════\n');
 }
 

@@ -125,7 +125,7 @@ model Configuracion {
   direccion       String
   heroSlides      Json?       // ← Almacenará el array de slides (alternativa simple)
   createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  updatedAt       DateTime    @default(now()) @updatedAt
   slides          HeroSlide[] // ← Relación con los slides individuales
 
   @@map("configuracion")

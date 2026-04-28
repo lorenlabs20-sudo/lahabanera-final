@@ -151,3 +151,9 @@ model HeroSlide {
 
   @@map("hero_slides")
 }
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../public/erd.svg"
+  mmdcPath = "./node_modules/.bin/mmdc"
+}

@@ -37,10 +37,6 @@ bun run dev
 
 **Abrir:** http://localhost:3000/admin/login
 
-**Credenciales:**
-- Email: admin@lahabanera.com
-- Password: Habanera2025!
-
 ---
 
 ### 3. Instalar Portal (en otra terminal)
@@ -83,7 +79,7 @@ bun run dev
 ## CONTACTO
 
 **Finca La Habanera**
-- Km 38-1/2, Carretera Central, San Pedro, Mayabeque, Cuba
+- San Pedro, Mayabeque, Cuba
 - WhatsApp: +53 5 3972047
 - Email: lahaban3ra@gmail.com
 # lahabanera-final

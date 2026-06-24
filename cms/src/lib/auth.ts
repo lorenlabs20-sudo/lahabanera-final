@@ -1,7 +1,19 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-for-dev';
+// ==========================================
+// 1. VALIDACIÓN ESTRICTA DE ENTORNO
+// ==========================================
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+  throw new Error("ERROR DE SEGURIDAD: Falta JWT_SECRET o es demasiado corta (< 16 chars). Revisa tu archivo .env.local");
+}
+
+if (!process.env.ADMIN_PASSWORD) {
+  throw new Error("ERROR DE SEGURIDAD: Falta ADMIN_PASSWORD. Revisa tu archivo .env.local");
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export interface JWTPayload {
   userId: string;
@@ -11,119 +23,79 @@ export interface JWTPayload {
   exp?: number;
 }
 
-/**
- * Hash a password using bcryptjs
- * @param password - Plain text password to hash
- * @returns Hashed password string
- */
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 12;
   return bcrypt.hash(password, saltRounds);
 }
 
-/**
- * Verify a password against a hash
- * @param password - Plain text password to verify
- * @param hash - Stored password hash
- * @returns True if password matches, false otherwise
- */
-export async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
-/**
- * Alias for verifyPassword for convenience
- */
 export const comparePassword = verifyPassword;
 
-/**
- * Generate a JWT token
- * @param payload - Object containing user data to encode
- * @returns JWT token string
- */
 export function generateToken(payload: object): string {
+  // Usamos la variable validada arriba
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '4h' });
 }
 
-/**
- * Verify and decode a JWT token
- * @param token - JWT token to verify
- * @returns Decoded payload or null if invalid
- */
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    return decoded;
-  } catch (error) {
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch {
     return null;
   }
 }
 
-/**
- * Extract and verify user from Authorization header
- * @param request - Request object with headers
- * @returns Decoded user payload or null if not authenticated
- */
+// Función para obtener usuario desde Request (Edge/API Routes)
 export function getAuthUser(request: Request): JWTPayload | null {
-  // Try Authorization header first (Bearer token)
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    return verifyToken(token);
+    return verifyToken(authHeader.substring(7));
   }
 
-  // Try cookie as fallback
   const cookieHeader = request.headers.get('cookie');
   if (cookieHeader) {
-    const cookies = Object.fromEntries(
+    const cookiesObj = Object.fromEntries(
       cookieHeader.split(';').map((c) => {
         const [key, ...v] = c.trim().split('=');
         return [key, v.join('=')];
       })
     );
-    if (cookies.auth_token) {
-      return verifyToken(cookies.auth_token);
+    if (cookiesObj.auth_token) {
+      return verifyToken(cookiesObj.auth_token);
     }
   }
 
   return null;
 }
 
-/**
- * Extract token from request (for middleware use)
- * @param request - Request object with headers
- * @returns Token string or null
- */
+// Función corregida y completa para extraer token
 export function extractToken(request: Request): string | null {
-  // Try Authorization header first
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
 
-  // Try cookie as fallback
   const cookieHeader = request.headers.get('cookie');
   if (cookieHeader) {
-    const cookies = Object.fromEntries(
+    const cookiesObj = Object.fromEntries(
       cookieHeader.split(';').map((c) => {
         const [key, ...v] = c.trim().split('=');
         return [key, v.join('=')];
       })
     );
-    return cookies.auth_token || null;
+    return cookiesObj.auth_token || null;
   }
 
   return null;
 }
 
-/**
- * Get current user from request (for API routes)
- * @param request - Request object with headers
- * @returns User payload with additional info or null if not authenticated
- */
-export async function getCurrentUser(request: Request): Promise<JWTPayload | null> {
-  return getAuthUser(request);
+// Función para Server Components (usando next/headers)
+export async function getCurrentUser(): Promise<JWTPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
+
+  if (!token) return null;
+  return verifyToken(token);
 }

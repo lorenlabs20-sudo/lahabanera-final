@@ -1,64 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-for-dev';
+// Almacenamiento temporal en memoria para desarrollo. 
+// En producción, usa Redis o una base de datos.
+const ipAttempts = new Map<string, { count: number; resetTime: number }>();
+
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+const MAX_ATTEMPTS = 5; // 5 intentos por ventana
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // En desarrollo no bloqueamos admin con middleware para evitar bloqueos de cookie
-  // y dejar que el frontend maneje la sesión. En producción se mantiene la seguridad.
-  if (process.env.NODE_ENV !== 'production') {
-    return NextResponse.next();
+  // Aplicar rate limiting solo a la ruta de login
+  if (pathname === '/api/auth/login') {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown-ip';
+    const now = Date.now();
+    
+    const attempt = ipAttempts.get(ip);
+
+    if (attempt && now < attempt.resetTime) {
+      if (attempt.count >= MAX_ATTEMPTS) {
+        return NextResponse.json(
+          { error: 'Demasiados intentos. Intente nuevamente en 15 minutos.' },
+          { status: 429 }
+        );
+      }
+      attempt.count += 1;
+    } else {
+      ipAttempts.set(ip, { count: 1, resetTime: now + WINDOW_MS });
+    }
   }
 
-  // API routes siempre permitidas
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.next();
-  }
-  
-  // Login page - si ya tiene token válido, redirigir al dashboard
-  if (pathname === '/admin/login') {
-    const token = request.cookies.get('auth_token')?.value;
-    console.log('middleware login check: token?', Boolean(token), 'cookie raw:', request.cookies.get('auth_token'));
-    if (token) {
-      try {
-        jwt.verify(token, JWT_SECRET);
-        console.log('middleware: token válido, redirigir dashboard');
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-      } catch (error) {
-        console.log('middleware: token inválido/login', error);
-        // Token inválido o expirado, dejar que entre al login
-      }
-    }
-    return NextResponse.next();
-  }
-  
-  // Rutas admin - verificar que el token JWT sea válido
-  if (pathname.startsWith('/admin')) {
-    const token = request.cookies.get('auth_token')?.value;
-    
-    if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-    
-    // Verificar que el token sea válido y no haya expirado
-    try {
-      jwt.verify(token, JWT_SECRET);
-      return NextResponse.next();
-    } catch (error) {
-      // Token inválido o expirado - redirigir al login
-      const response = NextResponse.redirect(new URL('/admin/login', request.url));
-      // Limpiar cookie inválida
-      response.cookies.delete('auth_token');
-      return response;
-    }
-  }
-  
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: '/api/:path*',
 };

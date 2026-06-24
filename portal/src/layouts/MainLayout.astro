@@ -1,0 +1,85 @@
+---
+import Header from "../components/Header.astro";
+import Toast from "../components/Toast.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  configuracion?: {
+    telefono?: string | null;
+    email?: string | null;
+    whatsapp?: string | null;
+    instagram?: string | null;
+    facebook?: string | null;
+    direccion?: string | null;
+  } | null;
+}
+
+const {
+  title,
+  description = "Finca Caprina La Habanera - Productos lacteos caprinos de calidad en Mayabeque, Cuba",
+  configuracion,
+} = Astro.props;
+
+// Obtener la ruta actual para el header
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#3D2314" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={`${title} | Finca La Habanera`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title} | Finca La Habanera</title>
+
+    <style is:global>
+      @import "../styles/global.css";
+    </style>
+  </head>
+  <body>
+    <!-- Header Component -->
+    <Header currentPath={currentPath} />
+
+    <!-- Toast Component -->
+    <Toast />
+
+    <!-- Main Content -->
+    <main class="main">
+      <slot />
+    </main>
+
+    <!-- Footer Component -->
+    <Footer configuracion={configuracion} />
+
+    <style>
+      .main {
+        min-height: calc(100vh - 70px);
+      }
+    </style>
+
+    <script>
+      // Lazy load images
+      document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
+        img.addEventListener("load", () => {
+          img.classList.add("loaded");
+        });
+      });
+    </script>
+  </body>
+</html>

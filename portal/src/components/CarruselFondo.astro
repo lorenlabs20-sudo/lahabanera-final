@@ -1,0 +1,219 @@
+---
+// components/CarruselFondo.astro
+export interface Slide {
+    id: string;
+    tipo: "imagen" | "video";
+    url: string;
+    titulo?: string | null;
+    subtitulo?: string | null;
+    duracion: number;
+    orden: number;
+    activo: boolean;
+}
+
+export interface Props {
+    slides: Slide[];
+}
+
+const { slides } = Astro.props;
+const slidesActivos = slides.filter(s => s.activo).sort((a, b) => a.orden - b.orden);
+
+slidesActivos.forEach((s, i) => {
+    console.log(`  Slide ${i}: tipo=${s.tipo}, duracion=${s.duracion}s, url=${s.url.substring(0, 50)}...`);
+});
+---
+
+{
+    slidesActivos.length > 0 ? (
+        <div 
+            class="carrusel-fondo" 
+            data-slides-count={slidesActivos.length}
+            data-slides-json={JSON.stringify(slidesActivos.map(s => ({ duracion: s.duracion })))}
+        >
+            {slidesActivos.map((slide, index) => (
+                <div 
+                    class={`carrusel-fondo-slide ${index === 0 ? "active" : ""}`}
+                    data-duracion={slide.duracion}
+                    data-tipo={slide.tipo}
+                    data-index={index}
+                >
+                    {slide.tipo === "imagen" ? (
+                        <img
+                            src={slide.url}
+                            class="carrusel-fondo-media"
+                            alt={slide.titulo || "Fondo"}
+                            loading={index === 0 ? "eager" : "lazy"}
+                        />
+                    ) : (
+                        <div class="carrusel-fondo-video-wrapper">
+                            {slide.url.includes("youtube.com") ? (
+                                <iframe
+                                    class="carrusel-fondo-media"
+                                    src={slide.url.replace("watch?v=", "embed/") + "?autoplay=1&mute=1&loop=1&controls=0&playlist=" + (slide.url.split("v=")[1]?.split("&")[0] || "")}
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen
+                                />
+                            ) : slide.url.includes("vimeo.com") ? (
+                                <iframe
+                                    class="carrusel-fondo-media"
+                                    src={slide.url.replace("vimeo.com", "player.vimeo.com/video") + "?autoplay=1&muted=1&loop=1&background=1"}
+                                    frameborder="0"
+                                    allow="autoplay; fullscreen; picture-in-picture"
+                                />
+                            ) : (
+                                <video
+                                    class="carrusel-fondo-media"
+                                    autoplay
+                                    muted
+                                    loop
+                                    playsinline
+                                >
+                                    <source src={slide.url} type="video/mp4" />
+                                </video>
+                            )}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    ) : (
+        <!-- Fallback: imagen por defecto si no hay slides -->
+        <div class="carrusel-fondo-fallback">
+            <img 
+                src="https://images.unsplash.com/photo-1524024973431-2ad916746881?w=1920&q=80"
+                class="carrusel-fondo-media"
+                alt="Fondo por defecto"
+            />
+        </div>
+    )
+}
+
+<style is:global>
+    .carrusel-fondo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        overflow: hidden;
+    }
+
+    .carrusel-fondo-slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+        z-index: 1;
+    }
+
+    .carrusel-fondo-slide.active {
+        opacity: 1;
+        z-index: 2;
+    }
+
+    .carrusel-fondo-media {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: translate(-50%, -50%);
+    }
+
+    .carrusel-fondo-video-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .carrusel-fondo-video-wrapper iframe,
+    .carrusel-fondo-video-wrapper video {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: translate(-50%, -50%);
+    }
+
+    .carrusel-fondo-fallback {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+</style>
+
+<script>
+    (function() {
+        const container = document.querySelector('.carrusel-fondo');
+        if (!container) return;
+
+        const slides = Array.from(container.querySelectorAll('.carrusel-fondo-slide'));
+        console.log(`[CarruselFondo] Inicializando con ${slides.length} slides`);
+
+        if (slides.length === 0) return;
+
+        let currentIndex = 0;
+        let intervalId: number | null | undefined = null;
+
+        // Leer duraciones de cada slide
+        const duraciones = slides.map(slide => {
+            const duracion = parseInt(slide.getAttribute('data-duracion') || '5');
+            console.log(`[CarruselFondo] Slide duración: ${duracion}s`);
+            return duracion * 1000; // convertir a milisegundos
+        });
+
+        function goToSlide(index: number) {
+            if (index === currentIndex) return;
+            
+            console.log(`[CarruselFondo] Cambiando a slide ${index}, duración: ${duraciones[index] / 1000}s`);
+            
+            // Remover active del slide actual
+            slides[currentIndex].classList.remove('active');
+            
+            // Actualizar índice
+            currentIndex = index;
+            
+            // Añadir active al nuevo slide
+            slides[currentIndex].classList.add('active');
+            
+            // Reiniciar el intervalo con la nueva duración
+            restartInterval();
+        }
+
+        function nextSlide() {
+            const nextIndex = (currentIndex + 1) % slides.length;
+            goToSlide(nextIndex);
+        }
+
+        function restartInterval() {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            const duracionActual = duraciones[currentIndex];
+            console.log(`[CarruselFondo] Nuevo intervalo: ${duracionActual / 1000}s`);
+            intervalId = setInterval(() => {
+                nextSlide();
+            }, duracionActual);
+        }
+
+        // Iniciar el carrusel
+        console.log('[CarruselFondo] Iniciando auto-play');
+        restartInterval();
+
+        // Limpiar intervalo si la página se descarga (opcional)
+        window.addEventListener('beforeunload', () => {
+            if (intervalId) clearInterval(intervalId);
+        });
+    })();
+</script>

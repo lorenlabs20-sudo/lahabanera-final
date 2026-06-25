@@ -1,39 +1,54 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
-// Almacenamiento temporal en memoria para desarrollo. 
-// En producción, usa Redis o una base de datos.
-const ipAttempts = new Map<string, { count: number; resetTime: number }>();
+// Clave secreta para verificar el JWT (debe coincidir con la usada en el backend)
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'default_secret_key'
+);
 
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
-const MAX_ATTEMPTS = 5; // 5 intentos por ventana
+// Definir rutas públicas (no requieren autenticación)
+const publicPaths = [
+  '/admin/login',
+  '/api/auth/login', // Asegura que esta ruta también sea pública
+];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Aplicar rate limiting solo a la ruta de login
-  if (pathname === '/api/auth/login') {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown-ip';
-    const now = Date.now();
-    
-    const attempt = ipAttempts.get(ip);
+  // Verificar si la ruta es pública
+  const isPublicPath = publicPaths.some((path) =>
+    pathname.startsWith(path)
+  );
 
-    if (attempt && now < attempt.resetTime) {
-      if (attempt.count >= MAX_ATTEMPTS) {
-        return NextResponse.json(
-          { error: 'Demasiados intentos. Intente nuevamente en 15 minutos.' },
-          { status: 429 }
-        );
-      }
-      attempt.count += 1;
-    } else {
-      ipAttempts.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    }
+  // Si es una ruta pública, continuar sin verificar autenticación
+  if (isPublicPath) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Obtener la cookie de autenticación
+  const token = request.cookies.get('auth_token')?.value; // Cambiado de 'token' a 'auth_token'
+
+  // Si no hay token, redirigir al login
+  if (!token) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/login';
+    return NextResponse.redirect(url);
+  }
+
+  try {
+    // Verificar el token JWT
+    await jwtVerify(token, JWT_SECRET);
+    // Si el token es válido, continuar
+    return NextResponse.next();
+  } catch (error) {
+    // Si el token es inválido, redirigir al login
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/login';
+    return NextResponse.redirect(url);
+  }
 }
 
+// Configurar las rutas a las que se aplica el middleware
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/admin/:path*', '/api/:path*'], // Ajusta según tus rutas protegidas
 };

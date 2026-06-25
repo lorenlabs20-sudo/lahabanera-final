@@ -7,67 +7,79 @@ export async function triggerPortalRebuild(options: {
   entity?: string
   entityId?: string
 }): Promise<boolean> {
-  console.log('==========================================')
-  console.log('[WEBHOOK] DISPARADO!')
-  console.log('[WEBHOOK] Razón:', options.reason)
-  console.log('[WEBHOOK] Entity:', options.entity)
-  console.log('[WEBHOOK] EntityId:', options.entityId)
-  console.log('==========================================')
-  
-  const webhookUrl = process.env.PORTAL_WEBHOOK_URL
-  
+  const webhookUrl = process.env.PORTAL_WEBHOOK_URL;
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+
+  // 1. Validación estricta de configuración
   if (!webhookUrl) {
-    console.log('[WEBHOOK] No hay PORTAL_WEBHOOK_URL configurada')
-    return false
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[WEBHOOK] PORTAL_WEBHOOK_URL no configurada');
+    }
+    return false;
   }
-  
-  console.log('[WEBHOOK] URL:', webhookUrl)
-  
+
+  if (!webhookSecret) {
+    console.error('ERROR CRÍTICO: WEBHOOK_SECRET no definida. El webhook no se enviará por seguridad.');
+    return false;
+  }
+
   try {
+    // 2. Envío seguro con encabezado de autenticación
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-webhook-secret': webhookSecret,
+      'User-Agent': 'Portal-Seguro/1.0',
+    };
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         reason: options.reason,
         entity: options.entity,
         entityId: options.entityId,
         timestamp: new Date().toISOString(),
       }),
-    })
-    
-    console.log('[WEBHOOK] Response:', response.status)
-    return response.ok
+    });
+
+    if (!response.ok) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[WEBHOOK] Error ${response.status}: Falló el rebuild`);
+      }
+      return false;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[WEBHOOK] Rebuild disparado con éxito:', options.reason);
+    }
+
+    return true;
   } catch (error) {
-    console.error('[WEBHOOK] Error:', error)
-    return false
+    console.error('[WEBHOOK] Excepción al disparar rebuild:', error instanceof Error ? error.message : 'Error desconocido');
+    return false;
   }
 }
 
+// ===========================================
+// TRIGGERS ESPECÍFICOS
+// ===========================================
 export const webhookTriggers = {
-  productoCreado: (id: string) => 
+  productoCreado: (id: string) =>
     triggerPortalRebuild({ reason: 'Producto creado', entity: 'producto', entityId: id }),
-  
-  productoActualizado: (id: string) => 
+  productoActualizado: (id: string) =>
     triggerPortalRebuild({ reason: 'Producto actualizado', entity: 'producto', entityId: id }),
-  
-  productoEliminado: (id: string) => 
+  productoEliminado: (id: string) =>
     triggerPortalRebuild({ reason: 'Producto eliminado', entity: 'producto', entityId: id }),
-  
-  categoriaCreada: (id: string) => 
+  categoriaCreada: (id: string) =>
     triggerPortalRebuild({ reason: 'Categoría creada', entity: 'categoria', entityId: id }),
-  
-  categoriaActualizada: (id: string) => 
+  categoriaActualizada: (id: string) =>
     triggerPortalRebuild({ reason: 'Categoría actualizada', entity: 'categoria', entityId: id }),
-  
-  categoriaEliminada: (id: string) => 
+  categoriaEliminada: (id: string) =>
     triggerPortalRebuild({ reason: 'Categoría eliminada', entity: 'categoria', entityId: id }),
-  
-  imagenCreada: (id: string) => 
+  imagenCreada: (id: string) =>
     triggerPortalRebuild({ reason: 'Imagen agregada', entity: 'imagen', entityId: id }),
-  
-  imagenEliminada: (id: string) => 
+  imagenEliminada: (id: string) =>
     triggerPortalRebuild({ reason: 'Imagen eliminada', entity: 'imagen', entityId: id }),
-  
-  configuracionActualizada: () => 
+  configuracionActualizada: () =>
     triggerPortalRebuild({ reason: 'Configuración actualizada', entity: 'configuracion' }),
-}
+};

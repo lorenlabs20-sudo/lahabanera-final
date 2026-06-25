@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
 
 // 1. Obtener y VALIDAR estrictamente la variable
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -45,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     // Buscar usuario
-    const user = await prisma.usuario.findUnique({
+    const user = await db.usuario.findUnique({
       where: { email: email.toLowerCase() },
       select: { id: true, email: true, nombre: true, rol: true, password: true }
     });
